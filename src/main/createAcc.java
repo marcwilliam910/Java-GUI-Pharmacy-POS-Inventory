@@ -58,7 +58,7 @@ public class createAcc extends javax.swing.JFrame {
         password = new javax.swing.JPasswordField();
         username = new javax.swing.JTextField();
         showpassCB = new javax.swing.JCheckBox();
-        login = new javax.swing.JLabel();
+        create = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
@@ -113,20 +113,20 @@ public class createAcc extends javax.swing.JFrame {
             }
         });
 
-        login.setBackground(new java.awt.Color(255, 255, 255));
-        login.setFont(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
-        login.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        login.setText("Create ");
-        login.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        login.addMouseListener(new java.awt.event.MouseAdapter() {
+        create.setBackground(new java.awt.Color(255, 255, 255));
+        create.setFont(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
+        create.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        create.setText("Create ");
+        create.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        create.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                loginMouseClicked(evt);
+                createMouseClicked(evt);
             }
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                loginMouseEntered(evt);
+                createMouseEntered(evt);
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                loginMouseExited(evt);
+                createMouseExited(evt);
             }
         });
 
@@ -176,7 +176,7 @@ public class createAcc extends javax.swing.JFrame {
                             .addGap(50, 50, 50))
                         .addGroup(bgLayout.createSequentialGroup()
                             .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(login, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(create, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 238, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addContainerGap()))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createSequentialGroup()
@@ -207,7 +207,7 @@ public class createAcc extends javax.swing.JFrame {
                 .addGap(26, 26, 26)
                 .addComponent(showpassCB)
                 .addGap(30, 30, 30)
-                .addComponent(login, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(create, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(create_acc)
                 .addGap(49, 49, 49))
@@ -270,19 +270,19 @@ public class createAcc extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_showpassCBActionPerformed
 
-    private void loginMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginMouseClicked
+    private void createMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_createMouseClicked
         try {
             String user = username.getText();
             String pass = password.getText();
             if (user.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Please fill out Username");
-                login.requestFocus();
+                create.requestFocus();
             } else if (pass.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Please fill out Password");
-                login.requestFocus();
+                create.requestFocus();
             } else if (user.equals("Username") || pass.equals("password")) {
                 JOptionPane.showMessageDialog(this, "Please fill out Username and Password First");
-                login.requestFocus();
+                create.requestFocus();
 
             } else {
                 int isSure = JOptionPane.showConfirmDialog(null, "Create Account?", "Confirmation", JOptionPane.YES_NO_OPTION);
@@ -293,7 +293,7 @@ public class createAcc extends javax.swing.JFrame {
                     pst.executeUpdate();
 
                     JOptionPane.showMessageDialog(null, "Accoun Added!");
-                    this.setVisible(false);
+                    dispose();
                     new login().setVisible(true);
 
                 } else {
@@ -304,21 +304,21 @@ public class createAcc extends javax.swing.JFrame {
         } catch (Exception e) {
         }
 
-    }//GEN-LAST:event_loginMouseClicked
+    }//GEN-LAST:event_createMouseClicked
 
-    private void loginMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginMouseEntered
+    private void createMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_createMouseEntered
 
         Border border = BorderFactory.createLineBorder(Color.white);
-        login.setBorder(border);
-    }//GEN-LAST:event_loginMouseEntered
+        create.setBorder(border);
+    }//GEN-LAST:event_createMouseEntered
 
-    private void loginMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginMouseExited
+    private void createMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_createMouseExited
         Border border = BorderFactory.createLineBorder(Color.black);
-        login.setBorder(border);
-    }//GEN-LAST:event_loginMouseExited
+        create.setBorder(border);
+    }//GEN-LAST:event_createMouseExited
 
     private void create_accMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_create_accMouseClicked
-        this.setVisible(false);
+        dispose();
         new login().setVisible(true);
     }//GEN-LAST:event_create_accMouseClicked
 
@@ -367,12 +367,12 @@ public class createAcc extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.k33ptoo.components.KGradientPanel bg;
+    private javax.swing.JLabel create;
     private javax.swing.JLabel create_acc;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JTextField jTextField1;
-    private javax.swing.JLabel login;
     private javax.swing.JPasswordField password;
     private javax.swing.JCheckBox showpassCB;
     private javax.swing.JTextField username;

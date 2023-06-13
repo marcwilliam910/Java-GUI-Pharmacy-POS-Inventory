@@ -289,7 +289,6 @@ public class login extends javax.swing.JFrame {
             if (rs.next()) {
                 JOptionPane.showMessageDialog(this, "Login Success!");
                 this.dispose();
-                new createAcc().dispose();
                 new pharmacy().setVisible(true);
 
             } else if (user.isEmpty()) {
@@ -335,7 +334,7 @@ public class login extends javax.swing.JFrame {
     }//GEN-LAST:event_create_accMouseExited
 
     private void create_accMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_create_accMouseClicked
-        this.setVisible(false);
+        dispose();
         new createAcc().setVisible(true);
     }//GEN-LAST:event_create_accMouseClicked
 

@@ -20,8 +20,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,6 +46,7 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.ui.RectangleInsets;
 
@@ -56,17 +59,18 @@ public class pharmacy extends javax.swing.JFrame {
     DefaultTableModel model1, model2;
     Color defaultColor, clickedColor;
     Font fontHover, fontDefault;
-    //for calendar
 
     public pharmacy() {
         initComponents();
         connect();
         table(selectCommand);
+        outOfStock();
         fontHover = new Font("Segoe UI Black", Font.BOLD, 35);
         fontDefault = new Font("Segoe UI Black", Font.BOLD, 24);
         defaultColor = new Color(0, 0, 0);
         clickedColor = new Color(82, 23, 179);
-        barChart();
+        monthlyChart();
+        dailyChart();
         buy.setEnabled(false);
         updateBtn.setEnabled(false);
         addNewMedBtn.setEnabled(false);
@@ -79,7 +83,7 @@ public class pharmacy extends javax.swing.JFrame {
         expenses.setBackground(defaultColor);
         inventory.setBackground(defaultColor);
     }
-       
+
     //CONNECTOR SA XAMPP MYSQL    
     String url = "jdbc:mysql://localhost:3306/pharma";
     String username = "root";
@@ -89,6 +93,10 @@ public class pharmacy extends javax.swing.JFrame {
     Connection con;
     PreparedStatement pst;
     ResultSet rs;
+
+    //para sa dashboard count
+    int orderCount = 0;
+    int saleCount = 0;
 
     public void connect() {
         try {
@@ -130,6 +138,7 @@ public class pharmacy extends javax.swing.JFrame {
                 df2.addRow(v2);
             }
 
+            //DESIGN OF TABLE ONLY
             //for table sa pos
             JTableHeader header = medsTable.getTableHeader();
             header.setForeground(Color.blue);
@@ -139,7 +148,8 @@ public class pharmacy extends javax.swing.JFrame {
             //medsTable.setBackground(new Color(69,109,176));
             medsTable.setShowGrid(true);
             medsTable.setGridColor(Color.BLACK);
-            medsTable.setFont(new Font("Calibri", Font.PLAIN, 18));
+            Font insideFont = new Font("Calibri", Font.PLAIN, 18);
+            medsTable.setFont(insideFont);
 
             TableColumnModel tableColumn = medsTable.getColumnModel();
             TableColumn column = tableColumn.getColumn(1);
@@ -147,13 +157,12 @@ public class pharmacy extends javax.swing.JFrame {
 
             //for table sa inventory
             JTableHeader header1 = medsTable1.getTableHeader();
-            Font font1 = new Font("Cambria", Font.BOLD, 20);
-            header1.setFont(font1);
+            header1.setFont(font);
             header1.setForeground(Color.blue);
             //medsTable.setBackground(new Color(69,109,176));
             medsTable1.setShowGrid(true);
             medsTable1.setGridColor(Color.BLACK);
-            medsTable1.setFont(new Font("Calibri", Font.PLAIN, 18));
+            medsTable1.setFont(insideFont);
 
             TableColumnModel tableColumn1 = medsTable1.getColumnModel();
             TableColumn column1 = tableColumn1.getColumn(1);
@@ -161,16 +170,33 @@ public class pharmacy extends javax.swing.JFrame {
 
             //for table sa order
             JTableHeader header2 = orderTable.getTableHeader();
-            Font font2 = new Font("Cambria", Font.BOLD, 20);
-            header2.setFont(font2);
-            header2.setForeground(Color.red);
-            //medsTable.setBackground(new Color(69,109,176));
 
-            orderTable.setFont(new Font("Calibri", Font.PLAIN, 18));
+            header2.setFont(font);
+            header2.setForeground(Color.red);
+
+            orderTable.setFont(insideFont);
 
             TableColumnModel tableColumn2 = orderTable.getColumnModel();
             TableColumn column2 = tableColumn2.getColumn(0);
             column2.setPreferredWidth(140);
+
+            //for table sa purchase history
+            JTableHeader header3 = purcharseHistoryTable.getTableHeader();
+            header3.setForeground(Color.blue);
+            header3.setFont(font);
+
+            medsTable.setShowGrid(true);
+            medsTable.setGridColor(Color.BLACK);
+            medsTable.setFont(insideFont);
+
+            TableColumnModel tableColumn3 = purcharseHistoryTable.getColumnModel();
+            TableColumn column3 = tableColumn3.getColumn(3);
+            column3.setPreferredWidth(100);
+
+            //for out of stock table
+            JTableHeader header4 = outOfStockTable.getTableHeader();
+            header4.setForeground(Color.red);
+            header4.setFont(font);
 
         } catch (SQLException | NullPointerException ex) {
             JOptionPane.showMessageDialog(this, "No Database Found!");
@@ -194,8 +220,8 @@ public class pharmacy extends javax.swing.JFrame {
         trs2.setRowFilter(RowFilter.regexFilter("(?i)" + med));
     }
 
-    //for chart
-    public void barChart() {
+    //for monthly chart
+    public void monthlyChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         dataset.setValue(125000, "January", "Jan");
         dataset.setValue(94543, "February", "Feb");
@@ -212,13 +238,13 @@ public class pharmacy extends javax.swing.JFrame {
         dataset.setValue(150000, "December", "Dec");
 
         JFreeChart chart = ChartFactory.createBarChart3D("", "Months", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
-        chart.setBackgroundPaint(new Color(96, 247, 190));
+        chart.setBackgroundPaint(new Color(240, 240, 240));
 
         CategoryPlot plot = chart.getCategoryPlot();
 
-        Font labelFont = new Font("Arial", Font.BOLD, 12);
-        Font horizontalFont = new Font("Arial", Font.PLAIN, 10);
-        Font verticalFont = new Font("Arial", Font.PLAIN, 10);
+        Font labelFont = new Font("Arial", Font.BOLD, 16);
+        Font horizontalFont = new Font("Arial", Font.PLAIN, 14);
+        Font verticalFont = new Font("Arial", Font.PLAIN, 14);
 
         CategoryAxis domainAxis = plot.getDomainAxis();
         domainAxis.setLabelFont(labelFont);
@@ -231,10 +257,42 @@ public class pharmacy extends javax.swing.JFrame {
         plot.setRangeGridlinePaint(Color.black);
         ChartPanel chartPanel = new ChartPanel(chart);
 
-        barChartPanel.removeAll();
-        barChartPanel.add(chartPanel, BorderLayout.CENTER);
-        barChartPanel.validate();
+        barChartPanelMonthly.removeAll();
+        barChartPanelMonthly.add(chartPanel, BorderLayout.CENTER);
+        barChartPanelMonthly.validate();
 
+    }
+
+    //for daily chart
+    public void dailyChart() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        for (int i = 0; i < salesTable.getRowCount(); i++) {
+            String day = (String) salesTable.getValueAt(i, 0);
+            int sale = Integer.parseInt(salesTable.getValueAt(i, 1).toString());
+            dataset.addValue(sale, "Income", day);
+        }
+
+        JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
+        chart.setBackgroundPaint(new Color(240, 240, 240));
+
+        CategoryPlot plot = chart.getCategoryPlot();
+
+        Font labelFont = new Font("Arial", Font.BOLD, 16);
+        Font tickFont = new Font("Arial", Font.PLAIN, 14);
+
+        plot.getDomainAxis().setLabelFont(labelFont);
+        plot.getDomainAxis().setTickLabelFont(tickFont);
+
+        plot.getRangeAxis().setLabelFont(labelFont);
+        plot.getRangeAxis().setTickLabelFont(tickFont);
+
+        plot.setRangeGridlinePaint(Color.BLACK);
+
+        ChartPanel chartPanel = new ChartPanel(chart);
+
+        barChartPanelDaily.setLayout(new BorderLayout());
+        barChartPanelDaily.add(chartPanel, BorderLayout.CENTER);
     }
 
     //for receipt
@@ -292,6 +350,7 @@ public class pharmacy extends javax.swing.JFrame {
 
         JOptionPane.showMessageDialog(null, "Done!");
         table(selectCommand);
+        outOfStock();
         buy.setEnabled(false);
     }
 
@@ -319,7 +378,59 @@ public class pharmacy extends javax.swing.JFrame {
             Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
+    public void purchaseHistory() {
+        Date dd = new Date();
+        SimpleDateFormat timef = new SimpleDateFormat("hh:mm a");
+        DefaultTableModel model = (DefaultTableModel) purcharseHistoryTable.getModel();
+        login l = new login();
+
+        for (int i = 0; i < orderTable.getRowCount(); i++) {
+            String item = (String) orderTable.getValueAt(i, 0);
+            int quan = Integer.parseInt(orderTable.getValueAt(i, 1).toString());
+            int price = Integer.parseInt(orderTable.getValueAt(i, 2).toString());
+            String time = timef.format(dd);
+            String user = l.user;
+
+            Vector v = new Vector();
+            v.add(item);
+            v.add(quan);
+            v.add(price);
+            v.add(time);
+            v.add(user);
+
+            model.addRow(v);
+
+        }
+    }
+
+    public void outOfStock() {
+        try {
+            pst = con.prepareStatement("SELECT meds_name, stock FROM medicine");
+            rs = pst.executeQuery();
+
+            ResultSetMetaData rss = rs.getMetaData();
+            int i = rss.getColumnCount();
+
+            DefaultTableModel df = (DefaultTableModel) outOfStockTable.getModel();
+
+            df.setRowCount(0);
+            while (rs.next()) {
+                int stock = Integer.parseInt(rs.getString("stock"));
+                if (stock < 10) {
+                    Vector v2 = new Vector();
+                    for (int a = 1; a <= i; a++) {
+                        v2.add(rs.getString("meds_name"));
+                        v2.add(rs.getString("stock"));
+                    }
+                    df.addRow(v2);
+                }
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -341,7 +452,6 @@ public class pharmacy extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         homeTab = new javax.swing.JPanel();
-        jLabel19 = new javax.swing.JLabel();
         dashboardOrderPanel = new com.k33ptoo.components.KGradientPanel();
         jLabel1 = new javax.swing.JLabel();
         jLabel33 = new javax.swing.JLabel();
@@ -354,13 +464,19 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel31 = new javax.swing.JLabel();
         jLabel36 = new javax.swing.JLabel();
         dashboardIncomeLbl = new javax.swing.JLabel();
+        calendarPanel1 = new com.github.lgooddatepicker.components.CalendarPanel();
+        jScrollPane5 = new javax.swing.JScrollPane();
+        purcharseHistoryTable = new javax.swing.JTable();
+        jLabel2 = new javax.swing.JLabel();
+        jScrollPane6 = new javax.swing.JScrollPane();
+        outOfStockTable = new javax.swing.JTable();
+        jLabel7 = new javax.swing.JLabel();
         posTab = new javax.swing.JPanel();
         buy = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         medsTable = new javax.swing.JTable();
         jLabel11 = new javax.swing.JLabel();
         search = new javax.swing.JTextField();
-        jLabel2 = new javax.swing.JLabel();
         jLabel12 = new javax.swing.JLabel();
         jScrollPane4 = new javax.swing.JScrollPane();
         orderTable = new javax.swing.JTable();
@@ -372,15 +488,27 @@ public class pharmacy extends javax.swing.JFrame {
         change = new javax.swing.JTextField();
         showReceipt = new javax.swing.JCheckBox();
         salesTab = new javax.swing.JPanel();
-        jLabel7 = new javax.swing.JLabel();
-        calendarPanel1 = new com.github.lgooddatepicker.components.CalendarPanel();
+        jTabbedPane2 = new javax.swing.JTabbedPane();
+        dailyChart = new javax.swing.JPanel();
+        jLabel35 = new javax.swing.JLabel();
+        prevDaily = new javax.swing.JLabel();
+        nextDaily = new javax.swing.JLabel();
+        barChartPanelDaily = new javax.swing.JPanel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        salesTable = new javax.swing.JTable();
+        weeklyChart = new javax.swing.JPanel();
+        jLabel37 = new javax.swing.JLabel();
+        nextWeekly = new javax.swing.JLabel();
+        prevWeekly = new javax.swing.JLabel();
+        barChartPanelWeekly = new javax.swing.JPanel();
+        monthlyChart = new javax.swing.JPanel();
         jLabel32 = new javax.swing.JLabel();
-        barChartPanel = new javax.swing.JPanel();
+        prevMonth = new javax.swing.JLabel();
+        nextMonth = new javax.swing.JLabel();
+        barChartPanelMonthly = new javax.swing.JPanel();
         expensesTab = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
         inventoryTab = new javax.swing.JPanel();
-        jLabel10 = new javax.swing.JLabel();
         kGradientPanel5 = new com.k33ptoo.components.KGradientPanel();
         jLabel6 = new javax.swing.JLabel();
         currentName = new javax.swing.JTextField();
@@ -623,7 +751,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addComponent(expenses, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(10, 10, 10)
                 .addComponent(inventory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 45, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 75, Short.MAX_VALUE)
                 .addComponent(logout)
                 .addContainerGap())
         );
@@ -632,19 +760,10 @@ public class pharmacy extends javax.swing.JFrame {
         jPanel1.setOpaque(false);
         jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabel19.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel19.setText("X");
-        jLabel19.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel19.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabel19MouseClicked(evt);
-            }
-        });
-
         dashboardOrderPanel.setkEndColor(new java.awt.Color(73, 254, 73));
         dashboardOrderPanel.setkGradientFocus(300);
         dashboardOrderPanel.setkStartColor(new java.awt.Color(95, 95, 249));
-        dashboardOrderPanel.setPreferredSize(new java.awt.Dimension(220, 100));
+        dashboardOrderPanel.setPreferredSize(new java.awt.Dimension(230, 100));
         dashboardOrderPanel.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 dashboardOrderPanelMouseEntered(evt);
@@ -655,13 +774,13 @@ public class pharmacy extends javax.swing.JFrame {
         });
 
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText("Today's Orders");
+        jLabel1.setText("Order's Count");
         jLabel1.setFont(new java.awt.Font("Segoe UI", 2, 14)); // NOI18N
 
         jLabel33.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/dashboard_order.png"))); // NOI18N
 
         dashboardOrderLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        dashboardOrderLbl.setText("25");
+        dashboardOrderLbl.setText("0");
         dashboardOrderLbl.setFont(new java.awt.Font("Segoe UI Black", 1, 24)); // NOI18N
 
         javax.swing.GroupLayout dashboardOrderPanelLayout = new javax.swing.GroupLayout(dashboardOrderPanel);
@@ -678,7 +797,7 @@ public class pharmacy extends javax.swing.JFrame {
                         .addComponent(dashboardOrderLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(18, 18, 18)
                 .addComponent(jLabel33)
-                .addContainerGap(12, Short.MAX_VALUE))
+                .addContainerGap(22, Short.MAX_VALUE))
         );
         dashboardOrderPanelLayout.setVerticalGroup(
             dashboardOrderPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -696,7 +815,7 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardSalesPanel.setkEndColor(new java.awt.Color(73, 254, 73));
         dashboardSalesPanel.setkGradientFocus(300);
         dashboardSalesPanel.setkStartColor(new java.awt.Color(95, 95, 249));
-        dashboardSalesPanel.setPreferredSize(new java.awt.Dimension(220, 100));
+        dashboardSalesPanel.setPreferredSize(new java.awt.Dimension(230, 100));
         dashboardSalesPanel.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 dashboardSalesPanelMouseEntered(evt);
@@ -707,13 +826,13 @@ public class pharmacy extends javax.swing.JFrame {
         });
 
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel3.setText("Today's Sales");
+        jLabel3.setText("Sales Count");
         jLabel3.setFont(new java.awt.Font("Segoe UI", 2, 14)); // NOI18N
 
         jLabel34.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/dashboard_sale.png"))); // NOI18N
 
         dashboardSalesLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        dashboardSalesLbl.setText("1500");
+        dashboardSalesLbl.setText("0");
         dashboardSalesLbl.setFont(new java.awt.Font("Segoe UI Black", 1, 24)); // NOI18N
         dashboardSalesLbl.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -729,7 +848,7 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardSalesPanelLayout.setHorizontalGroup(
             dashboardSalesPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(dashboardSalesPanelLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap(13, Short.MAX_VALUE)
                 .addGroup(dashboardSalesPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 105, Short.MAX_VALUE)
                     .addComponent(dashboardSalesLbl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -755,7 +874,7 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardIncomePanel.setkEndColor(new java.awt.Color(73, 254, 73));
         dashboardIncomePanel.setkGradientFocus(300);
         dashboardIncomePanel.setkStartColor(new java.awt.Color(95, 95, 249));
-        dashboardIncomePanel.setPreferredSize(new java.awt.Dimension(220, 100));
+        dashboardIncomePanel.setPreferredSize(new java.awt.Dimension(230, 100));
         dashboardIncomePanel.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 dashboardIncomePanelMouseEntered(evt);
@@ -772,7 +891,7 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel36.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/dashboard_income.png"))); // NOI18N
 
         dashboardIncomeLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        dashboardIncomeLbl.setText("50000");
+        dashboardIncomeLbl.setText("0");
         dashboardIncomeLbl.setFont(new java.awt.Font("Segoe UI Black", 1, 24)); // NOI18N
         dashboardIncomeLbl.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -812,33 +931,104 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
+        calendarPanel1.setBackground(new java.awt.Color(255, 255, 255));
+        calendarPanel1.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+
+        purcharseHistoryTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Item", "Quantity", "Price", "Time Sold", "Seller"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        purcharseHistoryTable.getTableHeader().setReorderingAllowed(false);
+        jScrollPane5.setViewportView(purcharseHistoryTable);
+        if (purcharseHistoryTable.getColumnModel().getColumnCount() > 0) {
+            purcharseHistoryTable.getColumnModel().getColumn(0).setResizable(false);
+            purcharseHistoryTable.getColumnModel().getColumn(1).setResizable(false);
+            purcharseHistoryTable.getColumnModel().getColumn(2).setResizable(false);
+            purcharseHistoryTable.getColumnModel().getColumn(3).setResizable(false);
+            purcharseHistoryTable.getColumnModel().getColumn(4).setResizable(false);
+        }
+
+        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel2.setText("Purchase History");
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 3, 30)); // NOI18N
+
+        outOfStockTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Name", "Stock"
+            }
+        ));
+        outOfStockTable.getTableHeader().setReorderingAllowed(false);
+        jScrollPane6.setViewportView(outOfStockTable);
+
+        jLabel7.setFont(new java.awt.Font("Tahoma", 2, 18)); // NOI18N
+        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel7.setText("Out of Stock");
+
         javax.swing.GroupLayout homeTabLayout = new javax.swing.GroupLayout(homeTab);
         homeTab.setLayout(homeTabLayout);
         homeTabLayout.setHorizontalGroup(
             homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(homeTabLayout.createSequentialGroup()
-                .addContainerGap(115, Short.MAX_VALUE)
+                .addGap(60, 60, 60)
+                .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(homeTabLayout.createSequentialGroup()
+                        .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 516, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, Short.MAX_VALUE)
+                        .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(calendarPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 264, Short.MAX_VALUE)
+                            .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                        .addContainerGap(157, Short.MAX_VALUE))
+                    .addGroup(homeTabLayout.createSequentialGroup()
+                        .addGap(142, 142, 142)
+                        .addComponent(jLabel2)
+                        .addGap(222, 222, 222)
+                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+            .addGroup(homeTabLayout.createSequentialGroup()
+                .addGap(100, 100, 100)
                 .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(20, 20, 20)
                 .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(20, 20, 20)
                 .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(52, 52, 52)
-                .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(116, 116, 116))
+                .addGap(0, 0, Short.MAX_VALUE))
         );
         homeTabLayout.setVerticalGroup(
             homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, homeTabLayout.createSequentialGroup()
-                .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(homeTabLayout.createSequentialGroup()
                 .addContainerGap(42, Short.MAX_VALUE)
                 .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(560, 560, 560))
+                .addGap(18, 18, 18)
+                .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel2)
+                    .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 412, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(homeTabLayout.createSequentialGroup()
+                        .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(calendarPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(10, 10, 10)))
+                .addContainerGap(83, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("tab1", homeTab);
@@ -908,15 +1098,6 @@ public class pharmacy extends javax.swing.JFrame {
             }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 searchKeyReleased(evt);
-            }
-        });
-
-        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setText("X");
-        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel2.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabel2MouseClicked(evt);
             }
         });
 
@@ -1022,48 +1203,42 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, posTabLayout.createSequentialGroup()
                 .addContainerGap(35, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, posTabLayout.createSequentialGroup()
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(116, 116, 116))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, posTabLayout.createSequentialGroup()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(posTabLayout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(posTabLayout.createSequentialGroup()
-                                .addGap(18, 18, 18)
-                                .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(posTabLayout.createSequentialGroup()
-                                        .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addGroup(posTabLayout.createSequentialGroup()
-                                                .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 81, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                .addComponent(payment, javax.swing.GroupLayout.PREFERRED_SIZE, 112, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                            .addGroup(posTabLayout.createSequentialGroup()
-                                                .addComponent(jLabel17, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                .addComponent(change, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                        .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addGroup(posTabLayout.createSequentialGroup()
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(totalTxt))
-                                            .addGroup(posTabLayout.createSequentialGroup()
-                                                .addGap(37, 37, 37)
-                                                .addComponent(showReceipt))))))
-                            .addGroup(posTabLayout.createSequentialGroup()
-                                .addGap(46, 46, 46)
-                                .addComponent(buy, javax.swing.GroupLayout.PREFERRED_SIZE, 362, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(132, 132, 132))))
+                                        .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 81, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addComponent(payment, javax.swing.GroupLayout.PREFERRED_SIZE, 112, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(posTabLayout.createSequentialGroup()
+                                        .addComponent(jLabel17, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addComponent(change, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(posTabLayout.createSequentialGroup()
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(totalTxt))
+                                    .addGroup(posTabLayout.createSequentialGroup()
+                                        .addGap(37, 37, 37)
+                                        .addComponent(showReceipt))))))
+                    .addGroup(posTabLayout.createSequentialGroup()
+                        .addGap(46, 46, 46)
+                        .addComponent(buy, javax.swing.GroupLayout.PREFERRED_SIZE, 362, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(132, 132, 132))
         );
         posTabLayout.setVerticalGroup(
             posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(posTabLayout.createSequentialGroup()
                 .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(posTabLayout.createSequentialGroup()
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(13, 13, 13)
+                        .addGap(47, 47, 47)
                         .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 365, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1092,55 +1267,273 @@ public class pharmacy extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("tab2", posTab);
 
-        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel7.setText("X");
-        jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel7.addMouseListener(new java.awt.event.MouseAdapter() {
+        jTabbedPane2.setOpaque(true);
+
+        jLabel35.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel35.setText(" Daily Sales Chart");
+        jLabel35.setFont(new java.awt.Font("Segoe UI Semibold", 3, 36)); // NOI18N
+
+        prevDaily.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        prevDaily.setText("←");
+        prevDaily.setFont(new java.awt.Font("Segoe UI Black", 1, 60)); // NOI18N
+        prevDaily.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabel7MouseClicked(evt);
+                prevDailyMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                prevDailyMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                prevDailyMouseExited(evt);
             }
         });
 
-        calendarPanel1.setBackground(new java.awt.Color(255, 255, 255));
-        calendarPanel1.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        nextDaily.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        nextDaily.setText("→");
+        nextDaily.setFont(new java.awt.Font("Segoe UI Black", 1, 60)); // NOI18N
+        nextDaily.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                nextDailyMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                nextDailyMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                nextDailyMouseExited(evt);
+            }
+        });
 
-        jLabel32.setFont(new java.awt.Font("Segoe UI Semibold", 3, 18)); // NOI18N
+        barChartPanelDaily.setLayout(new java.awt.BorderLayout());
+
+        salesTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {"Sunday", "5609"},
+                {"Monday", "4567"},
+                {"Tuesday", "6849"}
+            },
+            new String [] {
+                "Day", "Sales"
+            }
+        ));
+        jScrollPane3.setViewportView(salesTable);
+        if (salesTable.getColumnModel().getColumnCount() > 0) {
+            salesTable.getColumnModel().getColumn(0).setResizable(false);
+            salesTable.getColumnModel().getColumn(1).setResizable(false);
+        }
+
+        javax.swing.GroupLayout dailyChartLayout = new javax.swing.GroupLayout(dailyChart);
+        dailyChart.setLayout(dailyChartLayout);
+        dailyChartLayout.setHorizontalGroup(
+            dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dailyChartLayout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel35)
+                .addGap(36, 36, 36)
+                .addComponent(nextDaily)
+                .addGap(162, 162, 162))
+            .addGroup(dailyChartLayout.createSequentialGroup()
+                .addGap(32, 32, 32)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 204, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(35, 35, 35)
+                .addComponent(barChartPanelDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 586, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(22, Short.MAX_VALUE))
+            .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(dailyChartLayout.createSequentialGroup()
+                    .addGap(191, 191, 191)
+                    .addComponent(prevDaily)
+                    .addContainerGap(633, Short.MAX_VALUE)))
+        );
+        dailyChartLayout.setVerticalGroup(
+            dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(dailyChartLayout.createSequentialGroup()
+                .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(dailyChartLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel35, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(dailyChartLayout.createSequentialGroup()
+                        .addGap(23, 23, 23)
+                        .addComponent(nextDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(18, 18, 18)
+                .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(dailyChartLayout.createSequentialGroup()
+                        .addComponent(barChartPanelDaily, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(26, 26, 26))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dailyChartLayout.createSequentialGroup()
+                        .addGap(0, 84, Short.MAX_VALUE)
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 298, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(120, 120, 120))))
+            .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(dailyChartLayout.createSequentialGroup()
+                    .addGap(21, 21, 21)
+                    .addComponent(prevDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addContainerGap(535, Short.MAX_VALUE)))
+        );
+
+        jTabbedPane2.addTab("Daily ", new javax.swing.ImageIcon(getClass().getResource("/icons/daily.png")), dailyChart); // NOI18N
+
+        jLabel37.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel37.setText(" Weekly Income Chart");
+        jLabel37.setFont(new java.awt.Font("Segoe UI Semibold", 3, 36)); // NOI18N
+
+        nextWeekly.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        nextWeekly.setText("→");
+        nextWeekly.setFont(new java.awt.Font("Segoe UI Black", 1, 60)); // NOI18N
+        nextWeekly.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                nextWeeklyMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                nextWeeklyMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                nextWeeklyMouseExited(evt);
+            }
+        });
+
+        prevWeekly.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        prevWeekly.setText("←");
+        prevWeekly.setFont(new java.awt.Font("Segoe UI Black", 1, 60)); // NOI18N
+        prevWeekly.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                prevWeeklyMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                prevWeeklyMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                prevWeeklyMouseExited(evt);
+            }
+        });
+
+        barChartPanelWeekly.setLayout(new java.awt.BorderLayout());
+
+        javax.swing.GroupLayout weeklyChartLayout = new javax.swing.GroupLayout(weeklyChart);
+        weeklyChart.setLayout(weeklyChartLayout);
+        weeklyChartLayout.setHorizontalGroup(
+            weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(weeklyChartLayout.createSequentialGroup()
+                .addGroup(weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(weeklyChartLayout.createSequentialGroup()
+                        .addGap(156, 156, 156)
+                        .addComponent(prevWeekly)
+                        .addGap(18, 18, 18)
+                        .addComponent(jLabel37)
+                        .addGap(27, 27, 27)
+                        .addComponent(nextWeekly))
+                    .addGroup(weeklyChartLayout.createSequentialGroup()
+                        .addGap(47, 47, 47)
+                        .addComponent(barChartPanelWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 784, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(48, Short.MAX_VALUE))
+        );
+        weeklyChartLayout.setVerticalGroup(
+            weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(weeklyChartLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel37, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, weeklyChartLayout.createSequentialGroup()
+                        .addComponent(nextWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(13, 13, 13))
+                    .addGroup(weeklyChartLayout.createSequentialGroup()
+                        .addGap(14, 14, 14)
+                        .addComponent(prevWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 19, Short.MAX_VALUE)
+                .addComponent(barChartPanelWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 473, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(28, 28, 28))
+        );
+
+        jTabbedPane2.addTab("Weekly", new javax.swing.ImageIcon(getClass().getResource("/icons/weekly.png")), weeklyChart); // NOI18N
+
+        monthlyChart.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+
         jLabel32.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel32.setText("Your Monthly Income Chart");
+        jLabel32.setText(" Monthly Sales Chart");
+        jLabel32.setFont(new java.awt.Font("Segoe UI Semibold", 3, 36)); // NOI18N
 
-        barChartPanel.setLayout(new java.awt.BorderLayout());
+        prevMonth.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        prevMonth.setText("←");
+        prevMonth.setFont(new java.awt.Font("Segoe UI Black", 1, 60)); // NOI18N
+        prevMonth.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                prevMonthMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                prevMonthMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                prevMonthMouseExited(evt);
+            }
+        });
+
+        nextMonth.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        nextMonth.setText("→");
+        nextMonth.setFont(new java.awt.Font("Segoe UI Black", 1, 60)); // NOI18N
+        nextMonth.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                nextMonthMouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                nextMonthMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                nextMonthMouseExited(evt);
+            }
+        });
+
+        barChartPanelMonthly.setLayout(new java.awt.BorderLayout());
+
+        javax.swing.GroupLayout monthlyChartLayout = new javax.swing.GroupLayout(monthlyChart);
+        monthlyChart.setLayout(monthlyChartLayout);
+        monthlyChartLayout.setHorizontalGroup(
+            monthlyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(monthlyChartLayout.createSequentialGroup()
+                .addGroup(monthlyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(monthlyChartLayout.createSequentialGroup()
+                        .addGap(154, 154, 154)
+                        .addComponent(prevMonth)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel32)
+                        .addGap(18, 18, 18)
+                        .addComponent(nextMonth))
+                    .addGroup(monthlyChartLayout.createSequentialGroup()
+                        .addGap(46, 46, 46)
+                        .addComponent(barChartPanelMonthly, javax.swing.GroupLayout.PREFERRED_SIZE, 784, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(49, Short.MAX_VALUE))
+        );
+        monthlyChartLayout.setVerticalGroup(
+            monthlyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(monthlyChartLayout.createSequentialGroup()
+                .addGroup(monthlyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(monthlyChartLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel32, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(monthlyChartLayout.createSequentialGroup()
+                        .addGap(23, 23, 23)
+                        .addComponent(nextMonth, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(monthlyChartLayout.createSequentialGroup()
+                        .addGap(25, 25, 25)
+                        .addComponent(prevMonth, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
+                .addComponent(barChartPanelMonthly, javax.swing.GroupLayout.PREFERRED_SIZE, 473, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(30, 30, 30))
+        );
+
+        jTabbedPane2.addTab("Monthly", new javax.swing.ImageIcon(getClass().getResource("/icons/monthly.png")), monthlyChart); // NOI18N
 
         javax.swing.GroupLayout salesTabLayout = new javax.swing.GroupLayout(salesTab);
         salesTab.setLayout(salesTabLayout);
         salesTabLayout.setHorizontalGroup(
             salesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(salesTabLayout.createSequentialGroup()
-                .addGap(157, 157, 157)
-                .addComponent(jLabel32)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(115, 115, 115))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, salesTabLayout.createSequentialGroup()
-                .addGap(49, 49, 49)
-                .addComponent(barChartPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 469, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 75, Short.MAX_VALUE)
-                .addComponent(calendarPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(193, 193, 193))
+                .addGap(20, 20, 20)
+                .addComponent(jTabbedPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 884, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(111, Short.MAX_VALUE))
         );
         salesTabLayout.setVerticalGroup(
             salesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(salesTabLayout.createSequentialGroup()
-                .addGroup(salesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(salesTabLayout.createSequentialGroup()
-                        .addGap(56, 56, 56)
-                        .addComponent(calendarPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(salesTabLayout.createSequentialGroup()
-                        .addGap(14, 14, 14)
-                        .addComponent(jLabel32)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(barChartPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 289, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(363, Short.MAX_VALUE))
+                .addComponent(jTabbedPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 641, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 61, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("tab3", salesTab);
@@ -1148,48 +1541,24 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel4.setText("4");
         jLabel4.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
 
-        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel9.setText("X");
-        jLabel9.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel9.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabel9MouseClicked(evt);
-            }
-        });
-
         javax.swing.GroupLayout expensesTabLayout = new javax.swing.GroupLayout(expensesTab);
         expensesTab.setLayout(expensesTabLayout);
         expensesTabLayout.setHorizontalGroup(
             expensesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(expensesTabLayout.createSequentialGroup()
                 .addContainerGap(553, Short.MAX_VALUE)
-                .addGroup(expensesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, expensesTabLayout.createSequentialGroup()
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(323, 323, 323))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, expensesTabLayout.createSequentialGroup()
-                        .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(116, 116, 116))))
+                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(323, 323, 323))
         );
         expensesTabLayout.setVerticalGroup(
             expensesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(expensesTabLayout.createSequentialGroup()
-                .addComponent(jLabel9, javax.swing.GroupLayout.DEFAULT_SIZE, 35, Short.MAX_VALUE)
-                .addGap(161, 161, 161)
+                .addGap(196, 196, 196)
                 .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(413, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("tab4", expensesTab);
-
-        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel10.setText("X");
-        jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel10.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                jLabel10MouseClicked(evt);
-            }
-        });
 
         kGradientPanel5.setkBorderRadius(30);
         kGradientPanel5.setkEndColor(new java.awt.Color(73, 254, 73));
@@ -1379,21 +1748,16 @@ public class pharmacy extends javax.swing.JFrame {
                                     .addGap(0, 0, Short.MAX_VALUE))
                                 .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel5Layout.createSequentialGroup()
                                     .addGap(22, 22, 22)
+                                    .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(jLabel28)
+                                        .addComponent(jLabel26)
+                                        .addComponent(jLabel27))
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                     .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                                            .addGap(69, 69, 69)
-                                            .addComponent(updateBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                                            .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                                .addComponent(jLabel28)
-                                                .addComponent(jLabel26)
-                                                .addComponent(jLabel27))
-                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                            .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                .addComponent(newName, javax.swing.GroupLayout.PREFERRED_SIZE, 147, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                                    .addComponent(newPrice, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 72, Short.MAX_VALUE)
-                                                    .addComponent(newStock, javax.swing.GroupLayout.Alignment.LEADING)))))))))
+                                        .addComponent(newName, javax.swing.GroupLayout.PREFERRED_SIZE, 147, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                            .addComponent(newPrice, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 72, Short.MAX_VALUE)
+                                            .addComponent(newStock, javax.swing.GroupLayout.Alignment.LEADING)))))))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, kGradientPanel5Layout.createSequentialGroup()
                         .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addGroup(javax.swing.GroupLayout.Alignment.LEADING, kGradientPanel5Layout.createSequentialGroup()
@@ -1412,6 +1776,10 @@ public class pharmacy extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(addNewMedBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(11, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel5Layout.createSequentialGroup()
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addComponent(updateBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(100, 100, 100))
         );
         kGradientPanel5Layout.setVerticalGroup(
             kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1507,18 +1875,16 @@ public class pharmacy extends javax.swing.JFrame {
         inventoryTabLayout.setHorizontalGroup(
             inventoryTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(inventoryTabLayout.createSequentialGroup()
-                .addGap(36, 36, 36)
+                .addGap(50, 50, 50)
                 .addGroup(inventoryTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(inventoryTabLayout.createSequentialGroup()
                         .addComponent(jLabel29)
                         .addGap(18, 18, 18)
                         .addComponent(searchInventory, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 481, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGap(30, 30, 30)
                 .addComponent(kGradientPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 15, Short.MAX_VALUE)
-                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(117, 117, 117))
+                .addContainerGap(130, Short.MAX_VALUE))
         );
         inventoryTabLayout.setVerticalGroup(
             inventoryTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1527,12 +1893,9 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGroup(inventoryTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel29, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(searchInventory, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 28, Short.MAX_VALUE)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 518, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(96, 96, 96))
-            .addGroup(inventoryTabLayout.createSequentialGroup()
-                .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, 32, Short.MAX_VALUE)
-                .addGap(670, 670, 670))
             .addGroup(inventoryTabLayout.createSequentialGroup()
                 .addGap(36, 36, 36)
                 .addComponent(kGradientPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, 592, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1700,19 +2063,32 @@ public class pharmacy extends javax.swing.JFrame {
                 if (pay < tot) {
                     JOptionPane.showMessageDialog(this, "Not Enough Payment");
                 } else if (showReceipt.isSelected()) {
+                    orderCount++;
+                    saleCount += tot;
+                    dashboardOrderLbl.setText(String.valueOf(orderCount));
+                    dashboardSalesLbl.setText(String.valueOf(saleCount));
+
                     buy();
                     showReceipt r = new showReceipt();
                     DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
                     r.setVisible(true);
                     r.showToReceipt(order, pay, ch);
                     soldMedsToDB();
+                    purchaseHistory();
                     order.setRowCount(0);
-                    
+
                 } else {
+                    orderCount++;
+                    saleCount += tot;
+                    dashboardOrderLbl.setText(String.valueOf(orderCount));
+                    dashboardSalesLbl.setText(String.valueOf(saleCount));
+
                     buy();
                     soldMedsToDB();
+                    purchaseHistory();
                     DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
-                    order.setRowCount(0);                  
+                    order.setRowCount(0);
+
                 }
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Enter Valid Amount");
@@ -1752,26 +2128,6 @@ public class pharmacy extends javax.swing.JFrame {
         buy.setBackground(Color.white);
         buy.setForeground(Color.black);
     }//GEN-LAST:event_buyMouseExited
-
-    private void jLabel2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel2MouseClicked
-        System.exit(0);
-    }//GEN-LAST:event_jLabel2MouseClicked
-
-    private void jLabel7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel7MouseClicked
-        System.exit(0);
-    }//GEN-LAST:event_jLabel7MouseClicked
-
-    private void jLabel9MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel9MouseClicked
-        System.exit(0);
-    }//GEN-LAST:event_jLabel9MouseClicked
-
-    private void jLabel19MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel19MouseClicked
-        System.exit(0);
-    }//GEN-LAST:event_jLabel19MouseClicked
-
-    private void jLabel10MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel10MouseClicked
-        System.exit(0);
-    }//GEN-LAST:event_jLabel10MouseClicked
 
     private void medsTable1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_medsTable1MouseClicked
         String[] options = {"Add Stock", "Remove to list"};
@@ -1867,6 +2223,7 @@ public class pharmacy extends javax.swing.JFrame {
 
                     JOptionPane.showMessageDialog(null, "Stock and Price Updated!");
                     table(selectCommand);
+                    outOfStock();
                     updateBtn.setEnabled(false);
 
                     //para disabled yung mga textfield
@@ -1931,6 +2288,7 @@ public class pharmacy extends javax.swing.JFrame {
 
                     JOptionPane.showMessageDialog(this, "Added Successfully!");
                     table(selectCommand);
+                    outOfStock();
 
                     newName.setText("");
                     newPrice.setText("");
@@ -2117,6 +2475,78 @@ public class pharmacy extends javax.swing.JFrame {
         logout.setForeground(Color.black);
     }//GEN-LAST:event_logoutMouseExited
 
+    private void prevDailyMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevDailyMouseEntered
+        prevDaily.setForeground(Color.red);
+    }//GEN-LAST:event_prevDailyMouseEntered
+
+    private void prevDailyMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevDailyMouseExited
+        prevDaily.setForeground(Color.black);
+    }//GEN-LAST:event_prevDailyMouseExited
+
+    private void nextDailyMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextDailyMouseEntered
+        nextDaily.setForeground(Color.red);
+    }//GEN-LAST:event_nextDailyMouseEntered
+
+    private void nextDailyMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextDailyMouseExited
+        nextDaily.setForeground(Color.black);
+    }//GEN-LAST:event_nextDailyMouseExited
+
+    private void prevDailyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevDailyMouseClicked
+        jTabbedPane2.setSelectedIndex(2);
+    }//GEN-LAST:event_prevDailyMouseClicked
+
+    private void nextMonthMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextMonthMouseEntered
+        nextMonth.setForeground(Color.red);
+    }//GEN-LAST:event_nextMonthMouseEntered
+
+    private void nextMonthMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextMonthMouseExited
+        nextMonth.setForeground(Color.black);
+    }//GEN-LAST:event_nextMonthMouseExited
+
+    private void nextWeeklyMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextWeeklyMouseEntered
+        nextWeekly.setForeground(Color.red);
+    }//GEN-LAST:event_nextWeeklyMouseEntered
+
+    private void nextWeeklyMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextWeeklyMouseExited
+        nextWeekly.setForeground(Color.black);
+    }//GEN-LAST:event_nextWeeklyMouseExited
+
+    private void prevWeeklyMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevWeeklyMouseEntered
+        prevWeekly.setForeground(Color.red);
+    }//GEN-LAST:event_prevWeeklyMouseEntered
+
+    private void nextDailyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextDailyMouseClicked
+        jTabbedPane2.setSelectedIndex(1);
+    }//GEN-LAST:event_nextDailyMouseClicked
+
+    private void prevWeeklyMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevWeeklyMouseExited
+        prevWeekly.setForeground(Color.black);
+    }//GEN-LAST:event_prevWeeklyMouseExited
+
+    private void prevWeeklyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevWeeklyMouseClicked
+        jTabbedPane2.setSelectedIndex(0);
+    }//GEN-LAST:event_prevWeeklyMouseClicked
+
+    private void nextWeeklyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextWeeklyMouseClicked
+        jTabbedPane2.setSelectedIndex(2);
+    }//GEN-LAST:event_nextWeeklyMouseClicked
+
+    private void prevMonthMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevMonthMouseEntered
+        prevMonth.setForeground(Color.red);
+    }//GEN-LAST:event_prevMonthMouseEntered
+
+    private void prevMonthMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevMonthMouseExited
+        prevMonth.setForeground(Color.black);
+    }//GEN-LAST:event_prevMonthMouseExited
+
+    private void prevMonthMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevMonthMouseClicked
+        jTabbedPane2.setSelectedIndex(1);
+    }//GEN-LAST:event_prevMonthMouseClicked
+
+    private void nextMonthMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextMonthMouseClicked
+        jTabbedPane2.setSelectedIndex(0);
+    }//GEN-LAST:event_nextMonthMouseClicked
+
     /**
      * @param args the command line arguments
      */
@@ -2155,7 +2585,9 @@ public class pharmacy extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addNewMedBtn;
     private javax.swing.JTextField addStock;
-    private javax.swing.JPanel barChartPanel;
+    private javax.swing.JPanel barChartPanelDaily;
+    private javax.swing.JPanel barChartPanelMonthly;
+    private javax.swing.JPanel barChartPanelWeekly;
     private javax.swing.JButton buy;
     private com.github.lgooddatepicker.components.CalendarPanel calendarPanel1;
     private javax.swing.JTextField change;
@@ -2163,6 +2595,7 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JTextField currentName;
     private javax.swing.JTextField currentPrice;
     private javax.swing.JTextField currentStock;
+    private javax.swing.JPanel dailyChart;
     private javax.swing.JLabel dashboardIncomeLbl;
     private com.k33ptoo.components.KGradientPanel dashboardIncomePanel;
     private javax.swing.JLabel dashboardOrderLbl;
@@ -2179,13 +2612,11 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel inventory;
     private javax.swing.JPanel inventoryTab;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
-    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
@@ -2203,88 +2634,56 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel32;
     private javax.swing.JLabel jLabel33;
     private javax.swing.JLabel jLabel34;
+    private javax.swing.JLabel jLabel35;
     private javax.swing.JLabel jLabel36;
+    private javax.swing.JLabel jLabel37;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
+    private javax.swing.JScrollPane jScrollPane5;
+    private javax.swing.JScrollPane jScrollPane6;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JTabbedPane jTabbedPane2;
     private com.k33ptoo.components.KGradientPanel kGradientPanel2;
     private com.k33ptoo.components.KGradientPanel kGradientPanel5;
     private javax.swing.JLabel logout;
     private javax.swing.JTable medsTable;
     private javax.swing.JTable medsTable1;
+    private javax.swing.JPanel monthlyChart;
     private javax.swing.JTextField newName;
     private javax.swing.JTextField newPrice;
     private javax.swing.JTextField newStock;
+    private javax.swing.JLabel nextDaily;
+    private javax.swing.JLabel nextMonth;
+    private javax.swing.JLabel nextWeekly;
     private javax.swing.JTable orderTable;
+    private javax.swing.JTable outOfStockTable;
     private javax.swing.JTextField payment;
     private javax.swing.JPanel pos;
     private javax.swing.JLabel posLbl;
     private javax.swing.JPanel posTab;
+    private javax.swing.JLabel prevDaily;
+    private javax.swing.JLabel prevMonth;
+    private javax.swing.JLabel prevWeekly;
+    private javax.swing.JTable purcharseHistoryTable;
     private javax.swing.JPanel sales;
     private javax.swing.JLabel salesLbl;
     private javax.swing.JPanel salesTab;
+    private javax.swing.JTable salesTable;
     private javax.swing.JTextField search;
     private javax.swing.JTextField searchInventory;
     private javax.swing.JCheckBox showReceipt;
     private javax.swing.JTextField totalTxt;
     private javax.swing.JButton updateBtn;
     private javax.swing.JTextField updatePrice;
+    private javax.swing.JPanel weeklyChart;
     // End of variables declaration//GEN-END:variables
-class RoundedPanel extends JPanel {
-
-        private Color backgroundColor;
-        private int cornerRadius = 15;
-
-        public RoundedPanel(LayoutManager layout, int radius) {
-            super(layout);
-            cornerRadius = radius;
-        }
-
-        public RoundedPanel(LayoutManager layout, int radius, Color bgColor) {
-            super(layout);
-            cornerRadius = radius;
-            backgroundColor = bgColor;
-        }
-
-        public RoundedPanel(int radius) {
-            super();
-            cornerRadius = radius;
-
-        }
-
-        public RoundedPanel(int radius, Color bgColor) {
-            super();
-            cornerRadius = radius;
-            backgroundColor = bgColor;
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Dimension arcs = new Dimension(cornerRadius, cornerRadius);
-            int width = getWidth();
-            int height = getHeight();
-            Graphics2D graphics = (Graphics2D) g;
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            //Draws the rounded panel with borders.
-            if (backgroundColor != null) {
-                graphics.setColor(backgroundColor);
-            } else {
-                graphics.setColor(getBackground());
-            }
-            graphics.fillRoundRect(0, 0, width - 1, height - 1, arcs.width, arcs.height); //paint background
-            graphics.setColor(getForeground());
-//            graphics.drawRoundRect(0, 0, width-1, height-1, arcs.width, arcs.height); //paint border
-//             
-        }
-    }
 
 }
