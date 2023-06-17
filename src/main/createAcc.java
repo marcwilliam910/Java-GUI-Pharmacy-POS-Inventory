@@ -1,13 +1,12 @@
 package main;
 
 import java.awt.Color;
+import java.awt.HeadlessException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.border.Border;
@@ -21,8 +20,7 @@ public class createAcc extends javax.swing.JFrame {
         showpassCB.setBackground(new Color(0, 0, 0, 0));
         username.setBackground(new Color(0, 0, 0, 0));
         jTextField1.setBackground(new Color(0, 0, 0, 0));
-        this.setContentPane(bg);
-        this.setBackground(new Color(0, 0, 0, 0));
+        removeCorner();
         create_acc.setText("<html><u>Already have an account?</u></html>");
     }
 
@@ -38,17 +36,21 @@ public class createAcc extends javax.swing.JFrame {
     //ginagamit para kumuha ng data sa database
     ResultSet rs;
 
-    public void connect() {
+    private void connect() {
         try {
             Class.forName("com.mysql.jdbc.Driver");
             con = DriverManager.getConnection(url, sqlusername, sqlpassword);
-            System.out.println("Database Connected!");
 
         } catch (ClassNotFoundException | SQLException e) {
 
         }
     }
 
+    private void removeCorner(){
+        this.setContentPane(bg);
+        this.setBackground(new Color(0, 0, 0, 0));
+    }
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -292,7 +294,7 @@ public class createAcc extends javax.swing.JFrame {
                     pst.setString(2, pass);
                     pst.executeUpdate();
 
-                    JOptionPane.showMessageDialog(null, "Accoun Added!");
+                    JOptionPane.showMessageDialog(null, "Account Added!");
                     dispose();
                     new login().setVisible(true);
 
@@ -301,7 +303,7 @@ public class createAcc extends javax.swing.JFrame {
                 }
 
             }
-        } catch (Exception e) {
+        } catch (HeadlessException | SQLException e) {
         }
 
     }//GEN-LAST:event_createMouseClicked

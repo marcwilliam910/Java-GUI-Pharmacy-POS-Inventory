@@ -26,6 +26,7 @@ public class login extends javax.swing.JFrame {
     /**
      * Creates new form login
      */
+    protected int userID;
     protected String user;
 
     public login() {
@@ -35,8 +36,7 @@ public class login extends javax.swing.JFrame {
         connect();
         combobox();
         create_acc.setText("<html><u>Don't have an account?</u></html>");
-        this.setContentPane(bg);
-        this.setBackground(new Color(0, 0, 0, 0));
+        removeCorner();
 
     }
 
@@ -52,31 +52,51 @@ public class login extends javax.swing.JFrame {
     //ginagamit para kumuha ng data sa database
     ResultSet rs;
 
-    public void connect() {
+    private void connect() {
         try {
             Class.forName("com.mysql.jdbc.Driver");
             con = DriverManager.getConnection(url, sqlusername, sqlpassword);
-            System.out.println("Database Connected!");
 
         } catch (ClassNotFoundException | SQLException e) {
-           
+
         }
     }
 
-    public void combobox() {
+    private void combobox() {
         try {
             pst = con.prepareStatement("SELECT username FROM login");
             rs = pst.executeQuery();
             while (rs.next()) {
                 usernameCombo.addItem(rs.getString("username"));
             }
-            user = usernameCombo.getSelectedItem().toString();
+            getUserId();
+
         } catch (SQLException ex) {
             Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
         } catch (NullPointerException e) {
             JOptionPane.showMessageDialog(this, "No Database Found!");
         }
 
+    }
+
+    private void getUserId() {
+        try {
+            user = usernameCombo.getSelectedItem().toString();
+            pst = con.prepareStatement("SELECT ID FROM login WHERE username = ?");
+            pst.setString(1, user);
+            rs = pst.executeQuery();
+
+            if (rs.next()) {
+                userID = Integer.parseInt(rs.getString("ID"));
+            }
+        } catch (SQLException | NullPointerException ex) {
+
+        }
+    }
+
+    private void removeCorner() {
+        this.setContentPane(bg);
+        this.setBackground(new Color(0, 0, 0, 0));
     }
 
     @SuppressWarnings("unchecked")
@@ -281,7 +301,7 @@ public class login extends javax.swing.JFrame {
             String user = usernameCombo.getSelectedItem().toString();
             String pass = password.getText();
 
-            pst = con.prepareStatement("SELECT * FROM login WHERE username = ? and password = ?");
+            pst = con.prepareStatement("SELECT username, password FROM login WHERE username = ? and password = ?");
             pst.setString(1, user);
             pst.setString(2, pass);
             rs = pst.executeQuery();

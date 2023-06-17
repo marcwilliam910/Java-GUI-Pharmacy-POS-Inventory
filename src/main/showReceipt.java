@@ -22,12 +22,11 @@ public class showReceipt extends javax.swing.JFrame {
      */
     public showReceipt() {
         initComponents();
-        showReceiptDesign();
-        this.setContentPane(jPanel1);
-        this.setBackground(new Color(0,0,0,0));
+        receiptDesign();
+        removeCorner();
        
     }
-    public void showReceiptDesign(){
+    private void receiptDesign(){
         receipt.setText("\t           JLMV Pharmacy\n");
         receipt.setText(receipt.getText() + "\t         Palapat, Hagonoy\n");
         receipt.setText(receipt.getText() + "\t       Bulacan, Philippines\n");
@@ -37,13 +36,12 @@ public class showReceipt extends javax.swing.JFrame {
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
         
     }
-
-    
-    
-     public void showToReceipt(TableModel model, float payment, float change){
+   
+    //protected kasi papasahan sya ng data sa pharmacy frame
+     protected void showToReceipt(TableModel model, float payment, float change, double discountAmount){
          DefaultTableModel order = (DefaultTableModel) model;
          float total = 0;
-         int discount = 0;
+         double discount = discountAmount;
          float cash = payment;
          float balance = change;
          
@@ -78,6 +76,10 @@ public class showReceipt extends javax.swing.JFrame {
         receipt.setText(receipt.getText() + "   ************************************************************\n");
      }
     
+     private void removeCorner(){
+        this.setContentPane(jPanel1);
+        this.setBackground(new Color(0,0,0,0));
+    }
      
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

@@ -18,6 +18,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -81,9 +82,17 @@ public class pharmacy extends javax.swing.JFrame {
     PreparedStatement pst;
     ResultSet rs;
 
+    //for receipt
+    protected double total = 0;
+    protected int qty;
+
+    //para sa discount sa generics medicine
+    double genericsPrice = 0;
+    double discountAmount = 0;
+    
     //para sa dashboard count
-    int orderCount = 0;
-    int saleCount = 0;
+    private int orderCount = 0;
+    private int saleCount = 0;
 
     private void connect() {
         try {
@@ -278,25 +287,27 @@ public class pharmacy extends javax.swing.JFrame {
         barChartPanelDaily.add(chartPanel, BorderLayout.CENTER);
     }
 
-    //for receipt
-    int total = 0;
-    int qty;
-
     private void showInOrderTable() {
         try {
             qty = Integer.parseInt(JOptionPane.showInputDialog("Quantity"));
 
+            discount.setSelected(false);
             int selectrow = medsTable.getSelectedRow();
             String itemName = medsTable.getValueAt(selectrow, 0).toString();
             int price = Integer.parseInt(medsTable.getValueAt(selectrow, 1).toString());
             int quantity = qty;
+            String formulation = medsTable.getValueAt(selectrow, 3).toString();
             price *= quantity;
 
             total += price;
+            if (formulation.equals("Generic")) {
+                genericsPrice += price;
+                System.out.println(genericsPrice);
+            }
 
             DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
             //store sa array of object
-            Object[] order = {itemName, quantity, price};
+            Object[] order = {itemName, quantity, price, formulation};
             df.addRow(order);
 
             totalTxt.setText(String.valueOf(total));
@@ -321,7 +332,7 @@ public class pharmacy extends javax.swing.JFrame {
                 Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        showReceipt.setSelected(false);
+        discount.setSelected(false);
         totalTxt.setText("");
         payment.setText("");
         change.setText("");
@@ -329,9 +340,9 @@ public class pharmacy extends javax.swing.JFrame {
         //since na buy na, balik na sa 0 
         total = 0;
 
-        JOptionPane.showMessageDialog(null, "Done!");
         table(selectCommand);
         outOfStock();
+        JOptionPane.showMessageDialog(null, "Buying Done!");
         buy.setEnabled(false);
     }
 
@@ -341,21 +352,23 @@ public class pharmacy extends javax.swing.JFrame {
             //June 15, 2023 9:30AM  hh:mm:ss a - AM/PM indicator
             LocalDateTime currentDateTime = LocalDateTime.now();
             String formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            String user = new login().user;
+            //kinuha yung user id sa login frame
+            int userID = new login().userID;
+
             for (int i = 0; i < orderTable.getRowCount(); i++) {
                 String name = (String) orderTable.getValueAt(i, 0);
                 int quan = (int) orderTable.getValueAt(i, 1);
                 int price = (int) orderTable.getValueAt(i, 2);
 
-                pst = con.prepareStatement("INSERT INTO sold_medicine(product_name, quantity, total_price, date_sold, seller) VALUES(?,?,?,?,?)");
+                pst = con.prepareStatement("INSERT INTO sold_medicine(medicine_name, quantity, total_price, date_sold, login_id) VALUES(?,?,?,?,?)");
                 pst.setString(1, name);
                 pst.setInt(2, quan);
                 pst.setInt(3, price);
                 pst.setString(4, formattedDateTime);
-                pst.setString(5, user);
+                pst.setInt(5, userID);
                 pst.executeUpdate();
             }
-        } catch (SQLException ex) {
+        } catch (SQLException | NullPointerException ex) {
             Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -402,8 +415,19 @@ public class pharmacy extends javax.swing.JFrame {
                     df.addRow(rowData);
                 }
             }
-        } catch (SQLException ex) {
-            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException | NullPointerException ex) {
+
+        }
+    }
+
+    private void calculateDiscount() {        
+        if (discount.isSelected()) {
+            discountAmount = genericsPrice * 0.20;
+            double totalWithDiscount = Double.parseDouble(totalTxt.getText()) - discountAmount;
+            totalTxt.setText(String.valueOf(totalWithDiscount));
+        }
+        else {
+            totalTxt.setText(String.valueOf(total));
         }
     }
 
@@ -464,7 +488,7 @@ public class pharmacy extends javax.swing.JFrame {
         payment = new javax.swing.JTextField();
         jLabel17 = new javax.swing.JLabel();
         change = new javax.swing.JTextField();
-        showReceipt = new javax.swing.JCheckBox();
+        discount = new javax.swing.JCheckBox();
         salesTab = new javax.swing.JPanel();
         jTabbedPane2 = new javax.swing.JTabbedPane();
         dailyChart = new javax.swing.JPanel();
@@ -686,11 +710,11 @@ public class pharmacy extends javax.swing.JFrame {
             }
         });
 
-        supplierLbl.setFont(new java.awt.Font("Segoe UI", 3, 18)); // NOI18N
-        supplierLbl.setForeground(new java.awt.Color(255, 255, 255));
         supplierLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         supplierLbl.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/supplier.png"))); // NOI18N
         supplierLbl.setText("  Supplier");
+        supplierLbl.setFont(new java.awt.Font("Segoe UI", 3, 18)); // NOI18N
+        supplierLbl.setForeground(new java.awt.Color(255, 255, 255));
 
         javax.swing.GroupLayout supplierLayout = new javax.swing.GroupLayout(supplier);
         supplier.setLayout(supplierLayout);
@@ -769,7 +793,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addComponent(inventory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(10, 10, 10)
                 .addComponent(supplier, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 33, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
                 .addComponent(logout)
                 .addContainerGap())
         );
@@ -1082,7 +1106,10 @@ public class pharmacy extends javax.swing.JFrame {
 
         medsTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-
+                {"Bioflu", "10", "100", "Branded"},
+                {"Ibufropen", "11", "90", "Generic"},
+                {"Biogesic", "8", "67", "Branded"},
+                {"Paracetamol", "6", "90", "Generic"}
             },
             new String [] {
                 "Medicine Name", "Price", "Stock", "Formulation"
@@ -1140,11 +1167,11 @@ public class pharmacy extends javax.swing.JFrame {
 
             },
             new String [] {
-                "Medicine Name", "Quantity", "Price"
+                "Medicine Name", "Quantity", "Price", "Formulation"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false
+                false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -1161,6 +1188,7 @@ public class pharmacy extends javax.swing.JFrame {
             orderTable.getColumnModel().getColumn(0).setResizable(false);
             orderTable.getColumnModel().getColumn(1).setResizable(false);
             orderTable.getColumnModel().getColumn(2).setResizable(false);
+            orderTable.getColumnModel().getColumn(3).setResizable(false);
         }
 
         totalTxt.setEditable(false);
@@ -1208,13 +1236,18 @@ public class pharmacy extends javax.swing.JFrame {
             }
         });
 
-        showReceipt.setText("Show Receipt");
-        showReceipt.setBackground(new java.awt.Color(255, 255, 255));
-        showReceipt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        showReceipt.setForeground(new java.awt.Color(0, 0, 255));
-        showReceipt.addActionListener(new java.awt.event.ActionListener() {
+        discount.setText("20% Discount");
+        discount.setBackground(new java.awt.Color(255, 255, 255));
+        discount.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        discount.setForeground(new java.awt.Color(0, 0, 255));
+        discount.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                discountItemStateChanged(evt);
+            }
+        });
+        discount.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                showReceiptActionPerformed(evt);
+                discountActionPerformed(evt);
             }
         });
 
@@ -1255,8 +1288,8 @@ public class pharmacy extends javax.swing.JFrame {
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(totalTxt))
                                     .addGroup(posTabLayout.createSequentialGroup()
-                                        .addGap(37, 37, 37)
-                                        .addComponent(showReceipt))))))
+                                        .addGap(53, 53, 53)
+                                        .addComponent(discount))))))
                     .addGroup(posTabLayout.createSequentialGroup()
                         .addGap(46, 46, 46)
                         .addComponent(buy, javax.swing.GroupLayout.PREFERRED_SIZE, 362, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -1281,7 +1314,7 @@ public class pharmacy extends javax.swing.JFrame {
                         .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel17)
                             .addComponent(change, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(showReceipt))
+                            .addComponent(discount))
                         .addGap(18, 18, 18)
                         .addComponent(buy, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(posTabLayout.createSequentialGroup()
@@ -1739,11 +1772,11 @@ public class pharmacy extends javax.swing.JFrame {
             }
         });
 
-        formulationCombo.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         formulationCombo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Branded", "Generic" }));
+        formulationCombo.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
 
-        jLabel38.setFont(new java.awt.Font("Times New Roman", 1, 20)); // NOI18N
         jLabel38.setText("Formulation :");
+        jLabel38.setFont(new java.awt.Font("Times New Roman", 1, 20)); // NOI18N
 
         javax.swing.GroupLayout kGradientPanel5Layout = new javax.swing.GroupLayout(kGradientPanel5);
         kGradientPanel5.setLayout(kGradientPanel5Layout);
@@ -1945,8 +1978,8 @@ public class pharmacy extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("tab5", inventoryTab);
 
-        jLabel9.setFont(new java.awt.Font("Tahoma", 3, 36)); // NOI18N
         jLabel9.setText("6");
+        jLabel9.setFont(new java.awt.Font("Tahoma", 3, 36)); // NOI18N
 
         javax.swing.GroupLayout supplierTabLayout = new javax.swing.GroupLayout(supplierTab);
         supplierTab.setLayout(supplierTabLayout);
@@ -2126,47 +2159,62 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_inventoryMouseExited
 
     private void buyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buyActionPerformed
-        int isSure = JOptionPane.showConfirmDialog(null, "Are you sure you want to buy?", "Confirmation", JOptionPane.YES_NO_OPTION);
-        if (isSure == JOptionPane.YES_OPTION) {
-            try {
-                float pay = Float.parseFloat(payment.getText());
-                float tot = Float.parseFloat(totalTxt.getText());
-                float ch = Float.parseFloat(change.getText());
+        try {
+            float pay = Float.parseFloat(payment.getText());
+            float tot = Float.parseFloat(totalTxt.getText());
+            float ch = Float.parseFloat(change.getText());
 
-                if (pay < tot) {
-                    JOptionPane.showMessageDialog(this, "Not Enough Payment");
-                } else if (showReceipt.isSelected()) {
-                    orderCount++;
-                    saleCount += tot;
-                    dashboardOrderLbl.setText(String.valueOf(orderCount));
-                    dashboardSalesLbl.setText(String.valueOf(saleCount));
+            if (pay < tot) {
+                JOptionPane.showMessageDialog(this, "Not Enough Payment");
+            } else {
+                String[] options = {"Yes, let me see", "No, I don't", "Cancel Order"};
+                int choice = JOptionPane.showOptionDialog(null, "Do you want to see the receipt?", "Question", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
-                    buy();
-                    showReceipt r = new showReceipt();
-                    DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
-                    r.setVisible(true);
-                    r.showToReceipt(order, pay, ch);
-                    soldMedsToDB();
-                    purchaseHistory();
-                    order.setRowCount(0);
+                switch (choice) {
+                    case JOptionPane.YES_OPTION:
+                        orderCount++;
+                        saleCount += tot;
+                        dashboardOrderLbl.setText(String.valueOf(orderCount));
+                        dashboardSalesLbl.setText(String.valueOf(saleCount));
 
-                } else {
-                    orderCount++;
-                    saleCount += tot;
-                    dashboardOrderLbl.setText(String.valueOf(orderCount));
-                    dashboardSalesLbl.setText(String.valueOf(saleCount));
+                        buy();
+                        showReceipt r = new showReceipt();
+                        DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
+                        r.setVisible(true);
+                        r.showToReceipt(order, pay, ch, discountAmount);
+                        soldMedsToDB();
+                        purchaseHistory();
+                        order.setRowCount(0);
+                        discountAmount = 0;
+                        genericsPrice = 0;
+                        break;
 
-                    buy();
-                    soldMedsToDB();
-                    purchaseHistory();
-                    DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
-                    order.setRowCount(0);
+                    case JOptionPane.NO_OPTION:
+                        orderCount++;
+                        saleCount += tot;
+                        dashboardOrderLbl.setText(String.valueOf(orderCount));
+                        dashboardSalesLbl.setText(String.valueOf(saleCount));
+
+                        buy();
+                        soldMedsToDB();
+                        purchaseHistory();
+                        DefaultTableModel order1 = (DefaultTableModel) orderTable.getModel();
+                        order1.setRowCount(0);
+                        discountAmount = 0;
+                        genericsPrice = 0;
+                        break;
+
+                    default:
 
                 }
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Enter Valid Amount");
             }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Enter Valid Amount");
+        }catch (NullPointerException e){
+            
         }
+
+
     }//GEN-LAST:event_buyActionPerformed
 
     private void medsTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_medsTableMouseClicked
@@ -2207,9 +2255,9 @@ public class pharmacy extends javax.swing.JFrame {
         int choice = JOptionPane.showOptionDialog(null, "What do you want to do?", "Question", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
         if (choice == JOptionPane.YES_OPTION) {
             int selectrow = medsTable1.getSelectedRow();
-            currentName.setText(medsTable1.getValueAt(selectrow, 1).toString());
-            currentStock.setText(medsTable1.getValueAt(selectrow, 3).toString());
-            currentPrice.setText(medsTable1.getValueAt(selectrow, 2).toString());
+            currentName.setText(medsTable1.getValueAt(selectrow, 0).toString());
+            currentPrice.setText(medsTable1.getValueAt(selectrow, 1).toString());
+            currentStock.setText(medsTable1.getValueAt(selectrow, 2).toString());
 
             addStock.setEditable(true);
             updatePrice.setEditable(true);
@@ -2231,8 +2279,7 @@ public class pharmacy extends javax.swing.JFrame {
                     currentPrice.setText("");
                     currentStock.setText("");
                     searchInventory.setText("");
-                  
-                    
+
                     JOptionPane.showMessageDialog(null, "Deleting Success");
 
                 } catch (SQLException ex) {
@@ -2296,9 +2343,9 @@ public class pharmacy extends javax.swing.JFrame {
                     addStock.setText("");
                     this.updatePrice.setText("");
 
-                    JOptionPane.showMessageDialog(null, "Stock and Price Updated!");
                     table(selectCommand);
                     outOfStock();
+                    JOptionPane.showMessageDialog(null, "Stock and Price Updated!");
                     updateBtn.setEnabled(false);
 
                     //para disabled yung mga textfield
@@ -2363,9 +2410,9 @@ public class pharmacy extends javax.swing.JFrame {
                     pst.setString(4, formulation);
                     pst.executeUpdate();
 
-                    JOptionPane.showMessageDialog(this, "Added Successfully!");
                     table(selectCommand);
                     outOfStock();
+                    JOptionPane.showMessageDialog(this, "Added Successfully!");
 
                     newName.setText("");
                     newPrice.setText("");
@@ -2487,16 +2534,19 @@ public class pharmacy extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_changeActionPerformed
 
-    private void showReceiptActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showReceiptActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_showReceiptActionPerformed
-
     private void orderTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_orderTableMouseClicked
+        discount.setSelected(false);
         int selectedRow = orderTable.getSelectedRow();
         int price = Integer.parseInt(orderTable.getValueAt(selectedRow, 2).toString());
+        String formulation = orderTable.getValueAt(selectedRow, 3).toString();
         total -= price;
-        String displayTotal = String.valueOf(total);
-        totalTxt.setText(displayTotal);
+        
+        if(formulation.equals("Generic")){
+            genericsPrice -= price;
+            System.out.println(genericsPrice);
+        }
+        
+        totalTxt.setText(String.valueOf(total));
 
         //to remove the clicked row
         DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
@@ -2656,6 +2706,14 @@ public class pharmacy extends javax.swing.JFrame {
         supplierLbl.setForeground(Color.white);
     }//GEN-LAST:event_supplierMouseExited
 
+    private void discountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_discountActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_discountActionPerformed
+
+    private void discountItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_discountItemStateChanged
+        calculateDiscount();
+    }//GEN-LAST:event_discountItemStateChanged
+
     /**
      * @param args the command line arguments
      */
@@ -2711,6 +2769,7 @@ public class pharmacy extends javax.swing.JFrame {
     private com.k33ptoo.components.KGradientPanel dashboardOrderPanel;
     private javax.swing.JLabel dashboardSalesLbl;
     private com.k33ptoo.components.KGradientPanel dashboardSalesPanel;
+    private javax.swing.JCheckBox discount;
     private javax.swing.JLabel expLbl;
     private javax.swing.JPanel expenses;
     private javax.swing.JPanel expensesTab;
@@ -2791,7 +2850,6 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JTable salesTable;
     private javax.swing.JTextField search;
     private javax.swing.JTextField searchInventory;
-    private javax.swing.JCheckBox showReceipt;
     private javax.swing.JPanel supplier;
     private javax.swing.JLabel supplierLbl;
     private javax.swing.JPanel supplierTab;
