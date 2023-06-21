@@ -32,6 +32,38 @@ public class loading extends javax.swing.JFrame {
         this.setBackground(new Color(0, 0, 0, 0));
     }
     
+    public static void startLoadingProcess() {
+        loading l = new loading();
+        l.setVisible(true);
+
+        Thread loadingThread = new Thread(() -> {
+            try {
+                for (int i = 0; i <= 100; i = i + 2) {
+                    TimeUnit.MILLISECONDS.sleep(80);
+                    l.percent.setText(i + "%");
+
+                    if (i == 10) l.loading.setText("Getting Ready");
+                    if (i == 20) l.loading.setText("Loading Modules");
+                    if (i == 50) l.loading.setText("Connecting to Database...");
+                    if (i == 70) l.loading.setText("Connection Successful!");
+                    if (i == 90) l.loading.setText("Launching System...");
+
+                    l.progress.setValue(i);
+                    if (i == 100) {
+                        TimeUnit.MILLISECONDS.sleep(2000);
+                        l.dispose();
+                        new pharmacy().setVisible(true);
+                        // new login().setVisible(true);
+                    }
+                }
+            } catch (InterruptedException e) {
+                // Handle the exception
+            }
+        });
+
+    loadingThread.start();
+}   
+     
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -156,30 +188,7 @@ public class loading extends javax.swing.JFrame {
         //</editor-fold>
         
         /* Create and display the form */
-        loading l = new loading();
-        l.setVisible(true);
-       
-        try {
-            for (int i = 0; i <= 100; i = i + 2) {
-                TimeUnit.MILLISECONDS.sleep(80);
-                l.percent.setText(i + "%");
-
-                if (i == 10) l.loading.setText("Getting Ready");
-                if (i == 20) l.loading.setText("Loading Modules");
-                if (i == 50) l.loading.setText("Connecting to Database...");
-                if (i == 70) l.loading.setText("Connection Successful!");
-                if (i == 90) l.loading.setText("Launching System...");
-
-                l.progress.setValue(i);
-                if (i == 100) {
-                    TimeUnit.MILLISECONDS.sleep(2000);
-                    l.dispose();
-                    new login().setVisible(true);
-                }
-            }
-        } catch (InterruptedException e) {
-            // Handle the exception
-        }
+        
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

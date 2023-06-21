@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package main;
 
 import java.awt.BorderLayout;
@@ -12,13 +7,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -37,10 +35,6 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 
-/**
- *
- * @author asus
- */
 public class pharmacy extends javax.swing.JFrame {
 
     DefaultTableModel model1, model2;
@@ -53,23 +47,10 @@ public class pharmacy extends javax.swing.JFrame {
         table(selectCommand);
         outOfStock();
         tableDesign();
-        fontHover = new Font("Segoe UI Black", Font.BOLD, 35);
-        fontDefault = new Font("Segoe UI Black", Font.BOLD, 24);
-        defaultColor = new Color(0, 0, 0);
-        clickedColor = new Color(82, 23, 179);
+        dashboardOptionDesign();
         monthlyChart();
+        buttonEnabled();
         dailyChart();
-        buy.setEnabled(false);
-        updateBtn.setEnabled(false);
-        addNewMedBtn.setEnabled(false);
-
-        //for receipt
-        home.setOpaque(true);
-        home.setBackground(clickedColor);
-        pos.setBackground(defaultColor);
-        sales.setBackground(defaultColor);
-        expenses.setBackground(defaultColor);
-        inventory.setBackground(defaultColor);
     }
 
     //CONNECTOR SA XAMPP MYSQL    
@@ -89,7 +70,7 @@ public class pharmacy extends javax.swing.JFrame {
     //para sa discount sa generics medicine
     double genericsPrice = 0;
     double discountAmount = 0;
-    
+
     //para sa dashboard count
     private int orderCount = 0;
     private int saleCount = 0;
@@ -133,6 +114,7 @@ public class pharmacy extends javax.swing.JFrame {
 
     }
 
+    //design lang to ng mga table
     private void tableDesign() {
         //for table sa pos
         JTableHeader header = medsTable.getTableHeader();
@@ -194,6 +176,13 @@ public class pharmacy extends javax.swing.JFrame {
         TableColumn formulation2 = tableColumn4.getColumn(2);
         formulation2.setPreferredWidth(130);
 
+        TableColumnModel tableColumn5 = salesTable.getColumnModel();
+        TableColumn date = tableColumn5.getColumn(0);
+        TableColumn day = tableColumn5.getColumn(1);
+        TableColumn sale = tableColumn5.getColumn(2);
+        date.setPreferredWidth(100);
+        day.setPreferredWidth(80);
+        sale.setPreferredWidth(60);
     }
 
     private void search(String med) {
@@ -256,35 +245,106 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     //for daily chart
-    private void dailyChart() {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+    boolean firstClicked = true;
 
-        for (int i = 0; i < salesTable.getRowCount(); i++) {
-            String day = (String) salesTable.getValueAt(i, 0);
-            int sale = Integer.parseInt(salesTable.getValueAt(i, 1).toString());
-            dataset.addValue(sale, "Income", day);
+    private void todaySaleToDB() {
+        try {
+            //to get the todays date: ex June 17, 2023
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            LocalDate today = LocalDate.now();
+            String formattedDate = today.format(dateFormatter);
+
+            //for today day: ex Friday
+            DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("EEEE");
+            String formattedDay = today.format(dayFormatter);
+
+            //pang where condition, todays date: ex 2023-06-20
+            LocalDateTime now = LocalDateTime.now();
+            String todayDateTime = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            int todaySales = 0;
+
+            pst = con.prepareStatement("SELECT SUM(total_price) FROM sold_medicine WHERE DATE(date_sold) = ?");
+            pst.setString(1, todayDateTime);
+            rs = pst.executeQuery();
+
+            if (rs.next()) {
+                todaySales = rs.getInt(1);
+            }
+
+            String dateCondition = null;
+            pst = con.prepareStatement("SELECT date FROM daily_sales ORDER BY date DESC LIMIT 1");
+            rs = pst.executeQuery();
+            if (rs.next()) {
+                dateCondition = rs.getString(1);
+            }
+
+            if (firstClicked && !formattedDate.equals(dateCondition)) {
+                pst = con.prepareStatement("INSERT INTO daily_sales(date, day, total_sale) VALUES(?,?,?)");
+                pst.setString(1, formattedDate);
+                pst.setString(2, formattedDay);
+                pst.setInt(3, todaySales);
+                pst.executeUpdate();
+                firstClicked = false;
+            } else {
+                pst = con.prepareStatement("UPDATE daily_sales SET total_sale = ? WHERE date = ?");
+                pst.setInt(1, todaySales);
+                pst.setString(2, formattedDate);
+                pst.executeUpdate();
+            }
+
+        } catch (SQLException | NullPointerException ex) {
+            String errorMessage = ex.getMessage();
+            System.out.println("Error occurred todaySalesToDB: " + errorMessage);
         }
 
-        JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
-        chart.setBackgroundPaint(new Color(240, 240, 240));
+    }
 
-        CategoryPlot plot = chart.getCategoryPlot();
+    private void dailyChart() {
+        try {
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
+            String date;
+            String day;
+            double totalSale;
 
-        Font labelFont = new Font("Arial", Font.BOLD, 16);
-        Font tickFont = new Font("Arial", Font.PLAIN, 14);
+            //subquery para last 7 days lang ang kukunin nya
+            pst = con.prepareStatement("SELECT date, day, total_sale FROM daily_sales WHERE ID > (SELECT MAX(ID) - 7 FROM daily_sales)");
+            rs = pst.executeQuery();
 
-        plot.getDomainAxis().setLabelFont(labelFont);
-        plot.getDomainAxis().setTickLabelFont(tickFont);
+            while (rs.next()) {
+                date = rs.getString("date");
+                day = rs.getString("day");
+                totalSale = rs.getDouble("total_sale");
 
-        plot.getRangeAxis().setLabelFont(labelFont);
-        plot.getRangeAxis().setTickLabelFont(tickFont);
+                dataset.addValue(totalSale, "Income", day);
+                model.addRow(new Object[]{date, day, totalSale});
 
-        plot.setRangeGridlinePaint(Color.BLACK);
+            }
 
-        ChartPanel chartPanel = new ChartPanel(chart);
+            JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
+            chart.setBackgroundPaint(new Color(240, 240, 240));
 
-        barChartPanelDaily.setLayout(new BorderLayout());
-        barChartPanelDaily.add(chartPanel, BorderLayout.CENTER);
+            CategoryPlot plot = chart.getCategoryPlot();
+
+            Font labelFont = new Font("Arial", Font.BOLD, 16);
+            Font tickFont = new Font("Arial", Font.PLAIN, 14);
+
+            plot.getDomainAxis().setLabelFont(labelFont);
+            plot.getDomainAxis().setTickLabelFont(tickFont);
+
+            plot.getRangeAxis().setLabelFont(labelFont);
+            plot.getRangeAxis().setTickLabelFont(tickFont);
+
+            plot.setRangeGridlinePaint(Color.BLACK);
+
+            ChartPanel chartPanel = new ChartPanel(chart);
+            barChartPanelDaily.setLayout(new BorderLayout());
+            barChartPanelDaily.add(chartPanel, BorderLayout.CENTER);
+
+        } catch (SQLException | NullPointerException ex) {
+            String errorMessage = ex.getMessage();
+            System.out.println("Error occurred dailyChart: " + errorMessage);
+        }
     }
 
     private void showInOrderTable() {
@@ -302,7 +362,6 @@ public class pharmacy extends javax.swing.JFrame {
             total += price;
             if (formulation.equals("Generic")) {
                 genericsPrice += price;
-                System.out.println(genericsPrice);
             }
 
             DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
@@ -316,6 +375,19 @@ public class pharmacy extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, "Please Enter Valid Amount!");
         }
 
+    }
+
+    //cclear o ibabalik lang nito sa dati lahat pagka buy ng item
+    private void clearWhenBuy() {
+        discountAmount = 0;
+        genericsPrice = 0;
+        totalTxt.setText("");
+        payment.setText("");
+        change.setText("");
+        search.setText("");
+        discount.setSelected(false);
+        buy.setEnabled(false);
+        JOptionPane.showMessageDialog(null, "Buying Done!");
     }
 
     private void buy() {
@@ -332,18 +404,11 @@ public class pharmacy extends javax.swing.JFrame {
                 Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        discount.setSelected(false);
-        totalTxt.setText("");
-        payment.setText("");
-        change.setText("");
-        search.setText("");
         //since na buy na, balik na sa 0 
         total = 0;
 
         table(selectCommand);
         outOfStock();
-        JOptionPane.showMessageDialog(null, "Buying Done!");
-        buy.setEnabled(false);
     }
 
     private void soldMedsToDB() {
@@ -352,44 +417,70 @@ public class pharmacy extends javax.swing.JFrame {
             //June 15, 2023 9:30AM  hh:mm:ss a - AM/PM indicator
             LocalDateTime currentDateTime = LocalDateTime.now();
             String formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            //kinuha yung user id sa login frame
-            int userID = new login().userID;
-
-            for (int i = 0; i < orderTable.getRowCount(); i++) {
-                String name = (String) orderTable.getValueAt(i, 0);
-                int quan = (int) orderTable.getValueAt(i, 1);
-                int price = (int) orderTable.getValueAt(i, 2);
-
-                pst = con.prepareStatement("INSERT INTO sold_medicine(medicine_name, quantity, total_price, date_sold, login_id) VALUES(?,?,?,?,?)");
-                pst.setString(1, name);
-                pst.setInt(2, quan);
-                pst.setInt(3, price);
-                pst.setString(4, formattedDateTime);
-                pst.setInt(5, userID);
-                pst.executeUpdate();
+            //kinuha yung last user id sa login_hisoty sa db
+            int userID = 1;
+            pst = con.prepareStatement("SELECT userID FROM login_history");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                userID = rs.getInt(1);
             }
+            //gumamit ng StringBuilder para makuha lahat ng item at i-concatenate silang lahat
+            StringBuilder itemsBuilder = new StringBuilder();
+            for (int i = 0; i < orderTable.getRowCount(); i++) {
+                itemsBuilder.append((String) orderTable.getValueAt(i, 0));
+                if (i != orderTable.getRowCount() - 1) {
+                    itemsBuilder.append(", ");
+                }
+            }
+            String items = itemsBuilder.toString();
+
+            double price = Double.parseDouble(totalTxt.getText());
+            int roundedPrice = (int) Math.round(price);
+
+            pst = con.prepareStatement("INSERT INTO sold_medicine(items, total_price, date_sold, login_id) VALUES(?,?,?,?)");
+            pst.setString(1, items);
+            pst.setInt(2, roundedPrice);
+            pst.setString(3, formattedDateTime);
+            pst.setInt(4, userID);
+            pst.executeUpdate();
+
         } catch (SQLException | NullPointerException ex) {
             Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
+    //need ibahin design kasi hindi naaapply ang discount
     private void purchaseHistory() {
-        Date dd = new Date();
-        SimpleDateFormat timef = new SimpleDateFormat("hh:mm a");
-        DefaultTableModel model = (DefaultTableModel) purcharseHistoryTable.getModel();
-        login l = new login();
+        try {
+            Date dd = new Date();
+            SimpleDateFormat timef = new SimpleDateFormat("hh:mm a");
+            DefaultTableModel model = (DefaultTableModel) purcharseHistoryTable.getModel();
+            String user = null;
+            String items = null;
+            int price = 0;
+            //kinuha yung last username sa login_hisoty sa db
+            pst = con.prepareStatement("SELECT username FROM login_history");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                user = rs.getString(1);
+            }
 
-        for (int i = 0; i < orderTable.getRowCount(); i++) {
-            String item = (String) orderTable.getValueAt(i, 0);
-            int quan = Integer.parseInt(orderTable.getValueAt(i, 1).toString());
-            int price = Integer.parseInt(orderTable.getValueAt(i, 2).toString());
+            //para makuha yung order na item
+            pst = con.prepareStatement("SELECT items, total_price FROM sold_medicine");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                items = rs.getString(1);
+                price = rs.getInt(2);
+            }
+            
             String time = timef.format(dd);
-            String user = l.user;
 
             //store sa array of objects
-            Object[] purchase = {item, quan, price, time, user};
+            Object[] purchase = {items, price, time, user};
             model.addRow(purchase);
 
+        } catch (SQLException | NullPointerException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -397,9 +488,6 @@ public class pharmacy extends javax.swing.JFrame {
         try {
             pst = con.prepareStatement("SELECT meds_name, stock, formulation FROM medicine");
             rs = pst.executeQuery();
-
-            ResultSetMetaData rss = rs.getMetaData();
-            int i = rss.getColumnCount();
 
             DefaultTableModel df = (DefaultTableModel) outOfStockTable.getModel();
             df.setRowCount(0);
@@ -416,19 +504,54 @@ public class pharmacy extends javax.swing.JFrame {
                 }
             }
         } catch (SQLException | NullPointerException ex) {
+            System.out.println("Error out of stock");
+        }
+    }
+
+    private void calculateDiscount() {
+        try {
+            if (discount.isSelected()) {
+                int pay = Integer.parseInt(this.payment.getText());
+                discountAmount = genericsPrice * 0.20;
+                double totalWithDiscount = Double.parseDouble(totalTxt.getText()) - discountAmount;
+                int roundedTotal = (int) Math.round(totalWithDiscount);
+                totalTxt.setText(String.valueOf(roundedTotal));
+
+                //para makuha ang value ng payment at isubract sa total at idisplay sa change
+                int roundedChange = (int) Math.round(pay - totalWithDiscount);
+                change.setText(String.valueOf(roundedChange));
+            } else {
+                totalTxt.setText(String.valueOf(total));
+
+                //para lumabas ang sukli real time 
+                int pay = Integer.parseInt(this.payment.getText());
+
+                int roundedChange = (int) Math.round(pay - total);
+                change.setText(String.valueOf(roundedChange));
+            }
+        } catch (NumberFormatException ex) {
 
         }
     }
 
-    private void calculateDiscount() {        
-        if (discount.isSelected()) {
-            discountAmount = genericsPrice * 0.20;
-            double totalWithDiscount = Double.parseDouble(totalTxt.getText()) - discountAmount;
-            totalTxt.setText(String.valueOf(totalWithDiscount));
-        }
-        else {
-            totalTxt.setText(String.valueOf(total));
-        }
+    private void buttonEnabled() {
+        buy.setEnabled(false);
+        updateBtn.setEnabled(false);
+        addNewMedBtn.setEnabled(false);
+    }
+
+    private void dashboardOptionDesign() {
+        fontHover = new Font("Segoe UI Black", Font.BOLD, 35);
+        fontDefault = new Font("Segoe UI Black", Font.BOLD, 24);
+        defaultColor = new Color(0, 0, 0);
+        clickedColor = new Color(82, 23, 179);
+
+        home.setOpaque(true);
+        home.setBackground(clickedColor);
+        pos.setBackground(defaultColor);
+        sales.setBackground(defaultColor);
+        expenses.setBackground(defaultColor);
+        inventory.setBackground(defaultColor);
     }
 
     @SuppressWarnings("unchecked")
@@ -982,11 +1105,11 @@ public class pharmacy extends javax.swing.JFrame {
 
             },
             new String [] {
-                "Item", "Quantity", "Price", "Time Sold", "Seller"
+                "Item", "Price", "Time Sold", "Seller"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false
+                false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -1000,7 +1123,6 @@ public class pharmacy extends javax.swing.JFrame {
             purcharseHistoryTable.getColumnModel().getColumn(1).setResizable(false);
             purcharseHistoryTable.getColumnModel().getColumn(2).setResizable(false);
             purcharseHistoryTable.getColumnModel().getColumn(3).setResizable(false);
-            purcharseHistoryTable.getColumnModel().getColumn(4).setResizable(false);
         }
 
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -1106,10 +1228,7 @@ public class pharmacy extends javax.swing.JFrame {
 
         medsTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"Bioflu", "10", "100", "Branded"},
-                {"Ibufropen", "11", "90", "Generic"},
-                {"Biogesic", "8", "67", "Branded"},
-                {"Paracetamol", "6", "90", "Generic"}
+
             },
             new String [] {
                 "Medicine Name", "Price", "Stock", "Formulation"
@@ -1369,18 +1488,26 @@ public class pharmacy extends javax.swing.JFrame {
 
         salesTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"Sunday", "5609"},
-                {"Monday", "4567"},
-                {"Tuesday", "6849"}
+
             },
             new String [] {
-                "Day", "Sales"
+                "Date", "Day", "Sales"
             }
-        ));
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        salesTable.getTableHeader().setReorderingAllowed(false);
         jScrollPane3.setViewportView(salesTable);
         if (salesTable.getColumnModel().getColumnCount() > 0) {
             salesTable.getColumnModel().getColumn(0).setResizable(false);
             salesTable.getColumnModel().getColumn(1).setResizable(false);
+            salesTable.getColumnModel().getColumn(2).setResizable(false);
         }
 
         javax.swing.GroupLayout dailyChartLayout = new javax.swing.GroupLayout(dailyChart);
@@ -1388,22 +1515,19 @@ public class pharmacy extends javax.swing.JFrame {
         dailyChartLayout.setHorizontalGroup(
             dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dailyChartLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap(172, Short.MAX_VALUE)
+                .addComponent(prevDaily)
+                .addGap(50, 50, 50)
                 .addComponent(jLabel35)
-                .addGap(36, 36, 36)
+                .addGap(62, 62, 62)
                 .addComponent(nextDaily)
                 .addGap(162, 162, 162))
             .addGroup(dailyChartLayout.createSequentialGroup()
-                .addGap(32, 32, 32)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 204, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(35, 35, 35)
-                .addComponent(barChartPanelDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 586, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(22, Short.MAX_VALUE))
-            .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(dailyChartLayout.createSequentialGroup()
-                    .addGap(191, 191, 191)
-                    .addComponent(prevDaily)
-                    .addContainerGap(633, Short.MAX_VALUE)))
+                .addGap(14, 14, 14)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 233, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(barChartPanelDaily, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         dailyChartLayout.setVerticalGroup(
             dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1411,7 +1535,9 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(dailyChartLayout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(jLabel35, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel35, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(prevDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(dailyChartLayout.createSequentialGroup()
                         .addGap(23, 23, 23)
                         .addComponent(nextDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -1421,14 +1547,9 @@ public class pharmacy extends javax.swing.JFrame {
                         .addComponent(barChartPanelDaily, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGap(26, 26, 26))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, dailyChartLayout.createSequentialGroup()
-                        .addGap(0, 84, Short.MAX_VALUE)
+                        .addGap(0, 79, Short.MAX_VALUE)
                         .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 298, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(120, 120, 120))))
-            .addGroup(dailyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(dailyChartLayout.createSequentialGroup()
-                    .addGap(21, 21, 21)
-                    .addComponent(prevDaily, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap(535, Short.MAX_VALUE)))
+                        .addGap(125, 125, 125))))
         );
 
         jTabbedPane2.addTab("Daily ", new javax.swing.ImageIcon(getClass().getResource("/icons/daily.png")), dailyChart); // NOI18N
@@ -2090,6 +2211,12 @@ public class pharmacy extends javax.swing.JFrame {
         supplier.setBackground(defaultColor);
 
         jTabbedPane1.setSelectedIndex(2);
+
+        //need iset sa 0 ang table para ang madisplay lang ay ang laman ng table sa database, pumapatong lang kasi pag hindi
+        DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
+        model.setRowCount(0);
+        todaySaleToDB();
+        dailyChart();
     }//GEN-LAST:event_salesMouseClicked
 
     private void salesMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_salesMouseEntered
@@ -2179,14 +2306,13 @@ public class pharmacy extends javax.swing.JFrame {
 
                         buy();
                         showReceipt r = new showReceipt();
+                        soldMedsToDB();
+                        purchaseHistory();
+                        clearWhenBuy();
                         DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
                         r.setVisible(true);
                         r.showToReceipt(order, pay, ch, discountAmount);
-                        soldMedsToDB();
-                        purchaseHistory();
                         order.setRowCount(0);
-                        discountAmount = 0;
-                        genericsPrice = 0;
                         break;
 
                     case JOptionPane.NO_OPTION:
@@ -2200,8 +2326,7 @@ public class pharmacy extends javax.swing.JFrame {
                         purchaseHistory();
                         DefaultTableModel order1 = (DefaultTableModel) orderTable.getModel();
                         order1.setRowCount(0);
-                        discountAmount = 0;
-                        genericsPrice = 0;
+                        clearWhenBuy();
                         break;
 
                     default:
@@ -2209,9 +2334,12 @@ public class pharmacy extends javax.swing.JFrame {
                 }
             }
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Enter Valid Amount");
-        }catch (NullPointerException e){
-            
+            //JOptionPane.showMessageDialog(this, "Enter Valid Amount");
+            System.out.println("buy action error - NumberFormatException: " + e.getMessage());
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            System.out.println("buy action error - NullPointerException: " + e.getMessage());
+            e.printStackTrace();
         }
 
 
@@ -2325,7 +2453,7 @@ public class pharmacy extends javax.swing.JFrame {
 
                     //para naman pag price lang uupdate pero yung stock hindi
                     if (this.updatePrice.getText().isEmpty()) {
-                        updatePrice = Integer.parseInt(medsTable1.getValueAt(selectrow, 2).toString());
+                        updatePrice = Integer.parseInt(medsTable1.getValueAt(selectrow, 1).toString());
                     } else {
                         updatePrice = Integer.parseInt(this.updatePrice.getText());
                     }
@@ -2517,16 +2645,23 @@ public class pharmacy extends javax.swing.JFrame {
             float totalPrice = Float.parseFloat(totalTxt.getText());
             float pay = Float.parseFloat(payment.getText());
             float totalChange = pay - totalPrice;
-            change.setText(Float.toString(totalChange));
+            //limit decimal to 2
+            String changeDecimal = String.format("%.2f", totalChange);
+
+            change.setText(changeDecimal);
             buy.setEnabled(true);
         } catch (Exception e) {
         }
     }//GEN-LAST:event_paymentKeyReleased
 
     private void paymentKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyTyped
-        if (payment.getText().isEmpty()) {
+        if (payment.getText().matches("[a-zA-Z]+")) {
+            discount.setEnabled(false);
+        } else if (payment.getText().isEmpty()) {
             change.setText("");
             buy.setEnabled(false);
+        } else {
+            discount.setEnabled(true);
         }
     }//GEN-LAST:event_paymentKeyTyped
 
@@ -2540,12 +2675,11 @@ public class pharmacy extends javax.swing.JFrame {
         int price = Integer.parseInt(orderTable.getValueAt(selectedRow, 2).toString());
         String formulation = orderTable.getValueAt(selectedRow, 3).toString();
         total -= price;
-        
-        if(formulation.equals("Generic")){
+
+        if (formulation.equals("Generic")) {
             genericsPrice -= price;
-            System.out.println(genericsPrice);
         }
-        
+
         totalTxt.setText(String.valueOf(total));
 
         //to remove the clicked row

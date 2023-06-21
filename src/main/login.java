@@ -27,17 +27,14 @@ public class login extends javax.swing.JFrame {
      * Creates new form login
      */
     protected int userID;
-    protected String user;
+    protected String user = "";
 
     public login() {
         initComponents();
-        password.setBackground(new Color(0, 0, 0, 0));
-        showpassCB.setBackground(new Color(0, 0, 0, 0));
+        design();
         connect();
         combobox();
-        create_acc.setText("<html><u>Don't have an account?</u></html>");
         removeCorner();
-
     }
 
     //CONNECTOR SA XAMPP MYSQL    
@@ -52,6 +49,12 @@ public class login extends javax.swing.JFrame {
     //ginagamit para kumuha ng data sa database
     ResultSet rs;
 
+    private void design(){
+        password.setBackground(new Color(0, 0, 0, 0));
+        showpassCB.setBackground(new Color(0, 0, 0, 0));
+        create_acc.setText("<html><u>Don't have an account?</u></html>");
+    }
+    
     private void connect() {
         try {
             Class.forName("com.mysql.jdbc.Driver");
@@ -69,8 +72,6 @@ public class login extends javax.swing.JFrame {
             while (rs.next()) {
                 usernameCombo.addItem(rs.getString("username"));
             }
-            getUserId();
-
         } catch (SQLException ex) {
             Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
         } catch (NullPointerException e) {
@@ -89,6 +90,8 @@ public class login extends javax.swing.JFrame {
             if (rs.next()) {
                 userID = Integer.parseInt(rs.getString("ID"));
             }
+            
+            System.out.println(user + " " + userID);
         } catch (SQLException | NullPointerException ex) {
 
         }
@@ -99,6 +102,18 @@ public class login extends javax.swing.JFrame {
         this.setBackground(new Color(0, 0, 0, 0));
     }
 
+    private void loginHistory(){
+        try {
+            pst = con.prepareStatement("INSERT INTO login_history(userID, username) VALUES(?,?)");
+            pst.setInt(1, userID);
+            pst.setString(2, user);
+            pst.executeUpdate();
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -308,8 +323,11 @@ public class login extends javax.swing.JFrame {
 
             if (rs.next()) {
                 JOptionPane.showMessageDialog(this, "Login Success!");
+                getUserId();
+                loginHistory();
                 this.dispose();
-                new pharmacy().setVisible(true);
+                //since static sya, no need to instantiate
+                loading.startLoadingProcess();
 
             } else if (user.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Please fill out Username");

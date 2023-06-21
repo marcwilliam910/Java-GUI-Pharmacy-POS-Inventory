@@ -45,20 +45,24 @@ public class showReceipt extends javax.swing.JFrame {
          float cash = payment;
          float balance = change;
          
+         String discountDecimal = String.format("%.2f", discount);
+         
          for(int i = 0; i < order.getRowCount(); i++){
              
             String itemName = order.getValueAt(i, 0).toString();
             String quantity = order.getValueAt(i, 1).toString();
             String price = order.getValueAt(i, 2).toString();
             total +=Float.parseFloat(price);
-            
+                        
             receipt.setText(receipt.getText() + "        " + itemName + "	                  " + quantity + "	                           " + price + "\n");
          }
+        double grandTotal = total - discount;
+        
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
         receipt.setText(receipt.getText() + "       Subtotal :                                                             "+ total +"\n");
-        receipt.setText(receipt.getText() + "       Discount :                                                             " + discount + "\n");
+        receipt.setText(receipt.getText() + "       Discount :                                                             " + discountDecimal + "\n");
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
-        receipt.setText(receipt.getText() + "      Grand Total :                                                       "+ total +"\n");
+        receipt.setText(receipt.getText() + "      Grand Total :                                                       "+ grandTotal +"\n");
         receipt.setText(receipt.getText() + "      Cash :                                                                  "+ cash +"\n");
         receipt.setText(receipt.getText() + "      Balance :                                                              "+ balance +"\n");
         receipt.setText(receipt.getText() + "    ===========================================\n");
