@@ -41,12 +41,11 @@ public class showReceipt extends javax.swing.JFrame {
      protected void showToReceipt(TableModel model, float payment, float change, double discountAmount){
          DefaultTableModel order = (DefaultTableModel) model;
          float total = 0;
-         double discount = discountAmount;
+         int discount = (int) Math.round(discountAmount);
          float cash = payment;
          float balance = change;
          
-         String discountDecimal = String.format("%.2f", discount);
-         
+        
          for(int i = 0; i < order.getRowCount(); i++){
              
             String itemName = order.getValueAt(i, 0).toString();
@@ -60,7 +59,7 @@ public class showReceipt extends javax.swing.JFrame {
         
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
         receipt.setText(receipt.getText() + "       Subtotal :                                                             "+ total +"\n");
-        receipt.setText(receipt.getText() + "       Discount :                                                             " + discountDecimal + "\n");
+        receipt.setText(receipt.getText() + "       Discount :                                                             " + discount + "\n");
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
         receipt.setText(receipt.getText() + "      Grand Total :                                                       "+ grandTotal +"\n");
         receipt.setText(receipt.getText() + "      Cash :                                                                  "+ cash +"\n");

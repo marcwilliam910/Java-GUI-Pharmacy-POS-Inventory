@@ -6,11 +6,6 @@
 package main;
 
 import java.awt.Color;
-import java.awt.Desktop;
-import java.awt.SplashScreen;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
 /**

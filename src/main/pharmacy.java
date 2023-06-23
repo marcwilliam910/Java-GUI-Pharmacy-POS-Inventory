@@ -50,7 +50,9 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardOptionDesign();
         monthlyChart();
         buttonEnabled();
-        dailyChart();
+        dailySales();
+        purchaseHistory();
+        dashboardSalesCount();
     }
 
     //CONNECTOR SA XAMPP MYSQL    
@@ -70,10 +72,6 @@ public class pharmacy extends javax.swing.JFrame {
     //para sa discount sa generics medicine
     double genericsPrice = 0;
     double discountAmount = 0;
-
-    //para sa dashboard count
-    private int orderCount = 0;
-    private int saleCount = 0;
 
     private void connect() {
         try {
@@ -116,23 +114,16 @@ public class pharmacy extends javax.swing.JFrame {
 
     //design lang to ng mga table
     private void tableDesign() {
+        Font font = new Font("Cambria", Font.BOLD, 18);
+        Font insideFont = new Font("Calibri", Font.PLAIN, 17);
+
         //for table sa pos
         JTableHeader header = medsTable.getTableHeader();
         header.setForeground(Color.blue);
-        Font font = new Font("Cambria", Font.BOLD, 18);
         header.setFont(font);
-
         medsTable.setShowGrid(true);
         medsTable.setGridColor(Color.BLACK);
-        Font insideFont = new Font("Calibri", Font.PLAIN, 17);
         medsTable.setFont(insideFont);
-
-        TableColumnModel tableColumn = medsTable.getColumnModel();
-        TableColumn name = tableColumn.getColumn(0);
-        TableColumn formulation = tableColumn.getColumn(3);
-
-        name.setPreferredWidth(150);
-        formulation.setPreferredWidth(120);
 
         //for table sa inventory
         JTableHeader header1 = medsTable1.getTableHeader();
@@ -142,47 +133,22 @@ public class pharmacy extends javax.swing.JFrame {
         medsTable1.setGridColor(Color.BLACK);
         medsTable1.setFont(insideFont);
 
-        TableColumnModel tableColumn1 = medsTable1.getColumnModel();
-        TableColumn name1 = tableColumn1.getColumn(0);
-        TableColumn formulation1 = tableColumn1.getColumn(3);
-        name1.setPreferredWidth(150);
-        formulation1.setPreferredWidth(120);
         //for table sa order
         JTableHeader header2 = orderTable.getTableHeader();
-
-        header2.setFont(font);
+        header2.setFont(new Font("Cambria", Font.BOLD, 16));
         header2.setForeground(Color.red);
-
-        orderTable.setFont(insideFont);
-
-        TableColumnModel tableColumn2 = orderTable.getColumnModel();
-        TableColumn column2 = tableColumn2.getColumn(0);
-        column2.setPreferredWidth(140);
+        orderTable.setFont(new Font("Cambria", Font.PLAIN, 14));
 
         //for table sa purchase history
         JTableHeader header3 = purcharseHistoryTable.getTableHeader();
         header3.setForeground(Color.blue);
         header3.setFont(font);
 
-        TableColumnModel tableColumn3 = purcharseHistoryTable.getColumnModel();
-        TableColumn column3 = tableColumn3.getColumn(3);
-        column3.setPreferredWidth(100);
-
         //for out of stock table
         JTableHeader header4 = outOfStockTable.getTableHeader();
         header4.setForeground(Color.red);
         header4.setFont(font);
-        TableColumnModel tableColumn4 = outOfStockTable.getColumnModel();
-        TableColumn formulation2 = tableColumn4.getColumn(2);
-        formulation2.setPreferredWidth(130);
 
-        TableColumnModel tableColumn5 = salesTable.getColumnModel();
-        TableColumn date = tableColumn5.getColumn(0);
-        TableColumn day = tableColumn5.getColumn(1);
-        TableColumn sale = tableColumn5.getColumn(2);
-        date.setPreferredWidth(100);
-        day.setPreferredWidth(80);
-        sale.setPreferredWidth(60);
     }
 
     private void search(String med) {
@@ -244,9 +210,6 @@ public class pharmacy extends javax.swing.JFrame {
 
     }
 
-    //for daily chart
-    boolean firstClicked = true;
-
     private void todaySaleToDB() {
         try {
             //to get the todays date: ex June 17, 2023
@@ -278,13 +241,13 @@ public class pharmacy extends javax.swing.JFrame {
                 dateCondition = rs.getString(1);
             }
 
-            if (firstClicked && !formattedDate.equals(dateCondition)) {
+            if (!formattedDate.equals(dateCondition)) {
                 pst = con.prepareStatement("INSERT INTO daily_sales(date, day, total_sale) VALUES(?,?,?)");
                 pst.setString(1, formattedDate);
                 pst.setString(2, formattedDay);
                 pst.setInt(3, todaySales);
                 pst.executeUpdate();
-                firstClicked = false;
+
             } else {
                 pst = con.prepareStatement("UPDATE daily_sales SET total_sale = ? WHERE date = ?");
                 pst.setInt(1, todaySales);
@@ -299,9 +262,8 @@ public class pharmacy extends javax.swing.JFrame {
 
     }
 
-    private void dailyChart() {
+    private void dailySales() {
         try {
-            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
             DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
             String date;
             String day;
@@ -316,30 +278,9 @@ public class pharmacy extends javax.swing.JFrame {
                 day = rs.getString("day");
                 totalSale = rs.getDouble("total_sale");
 
-                dataset.addValue(totalSale, "Income", day);
                 model.addRow(new Object[]{date, day, totalSale});
 
             }
-
-            JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
-            chart.setBackgroundPaint(new Color(240, 240, 240));
-
-            CategoryPlot plot = chart.getCategoryPlot();
-
-            Font labelFont = new Font("Arial", Font.BOLD, 16);
-            Font tickFont = new Font("Arial", Font.PLAIN, 14);
-
-            plot.getDomainAxis().setLabelFont(labelFont);
-            plot.getDomainAxis().setTickLabelFont(tickFont);
-
-            plot.getRangeAxis().setLabelFont(labelFont);
-            plot.getRangeAxis().setTickLabelFont(tickFont);
-
-            plot.setRangeGridlinePaint(Color.BLACK);
-
-            ChartPanel chartPanel = new ChartPanel(chart);
-            barChartPanelDaily.setLayout(new BorderLayout());
-            barChartPanelDaily.add(chartPanel, BorderLayout.CENTER);
 
         } catch (SQLException | NullPointerException ex) {
             String errorMessage = ex.getMessage();
@@ -347,6 +288,44 @@ public class pharmacy extends javax.swing.JFrame {
         }
     }
 
+    private void dailyLineChart() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
+        
+        int rowCount = salesTable.getRowCount();
+        dataset.clear();
+        for (int row = 0; row < rowCount; row++) {
+            String day = model.getValueAt(row, 1).toString();
+            double income = Double.parseDouble(model.getValueAt(row, 2).toString());
+
+            dataset.addValue(income, "Income", day);
+        }
+        JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
+        chart.setBackgroundPaint(new Color(240, 240, 240));
+
+        CategoryPlot plot = chart.getCategoryPlot();
+
+        Font labelFont = new Font("Arial", Font.BOLD, 16);
+        Font tickFont = new Font("Arial", Font.PLAIN, 14);
+
+        plot.getDomainAxis().setLabelFont(labelFont);
+        plot.getDomainAxis().setTickLabelFont(tickFont);
+
+        plot.getRangeAxis().setLabelFont(labelFont);
+        plot.getRangeAxis().setTickLabelFont(tickFont);
+
+        plot.setRangeGridlinePaint(Color.BLACK);
+
+        chart.getCategoryPlot().setDataset(dataset); // Set the dataset before creating ChartPanel
+
+        ChartPanel chartPanel = new ChartPanel(chart);
+        barChartPanelDaily.removeAll();
+        barChartPanelDaily.setLayout(new BorderLayout());
+        barChartPanelDaily.add(chartPanel, BorderLayout.CENTER);
+        barChartPanelDaily.validate(); // Ensure proper layout and display
+
+    }
+   
     private void showInOrderTable() {
         try {
             qty = Integer.parseInt(JOptionPane.showInputDialog("Quantity"));
@@ -379,7 +358,6 @@ public class pharmacy extends javax.swing.JFrame {
 
     //cclear o ibabalik lang nito sa dati lahat pagka buy ng item
     private void clearWhenBuy() {
-        discountAmount = 0;
         genericsPrice = 0;
         totalTxt.setText("");
         payment.setText("");
@@ -449,38 +427,30 @@ public class pharmacy extends javax.swing.JFrame {
         }
     }
 
-    //need ibahin design kasi hindi naaapply ang discount
     private void purchaseHistory() {
+        //need iclear muna laman ng purchase table kasi lalagyan sya bagong laman kada call ng function na to
+        DefaultTableModel model = (DefaultTableModel) purcharseHistoryTable.getModel();
+        model.setRowCount(0);
         try {
-            Date dd = new Date();
-            SimpleDateFormat timef = new SimpleDateFormat("hh:mm a");
-            DefaultTableModel model = (DefaultTableModel) purcharseHistoryTable.getModel();
-            String user = null;
-            String items = null;
-            int price = 0;
-            //kinuha yung last username sa login_hisoty sa db
-            pst = con.prepareStatement("SELECT username FROM login_history");
+            LocalDateTime currentDateTime = LocalDateTime.now();
+            String formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+            DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("h:mm a");
+
+            pst = con.prepareStatement("SELECT sold_medicine.items, sold_medicine.total_price, sold_medicine.date_sold, login.username FROM sold_medicine JOIN login ON sold_medicine.login_id = login.ID WHERE DATE(sold_medicine.date_sold) = ?");
+            pst.setString(1, formattedDateTime);
             rs = pst.executeQuery();
-            if (rs.last()) {
-                user = rs.getString(1);
+            while (rs.next()) {
+                String items = rs.getString(1);
+                String totalPrice = rs.getString(2);
+                LocalDateTime dateSold = rs.getTimestamp(3).toLocalDateTime();
+                String formattedDate = timeFormat.format(dateSold);
+                String seller = rs.getString(4);
+                model.addRow(new Object[]{items, totalPrice, formattedDate, seller});
             }
 
-            //para makuha yung order na item
-            pst = con.prepareStatement("SELECT items, total_price FROM sold_medicine");
-            rs = pst.executeQuery();
-            if (rs.last()) {
-                items = rs.getString(1);
-                price = rs.getInt(2);
-            }
-            
-            String time = timef.format(dd);
+        } catch (SQLException | NullPointerException e) {
 
-            //store sa array of objects
-            Object[] purchase = {items, price, time, user};
-            model.addRow(purchase);
-
-        } catch (SQLException | NullPointerException ex) {
-            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -552,6 +522,21 @@ public class pharmacy extends javax.swing.JFrame {
         sales.setBackground(defaultColor);
         expenses.setBackground(defaultColor);
         inventory.setBackground(defaultColor);
+    }
+
+    //need pa iedit
+    private void dashboardSalesCount() {
+        //kinuha ang order count sa purchase history, kung ilan ang row don
+        DefaultTableModel purchase = (DefaultTableModel) purcharseHistoryTable.getModel();
+        int salesCount = purchase.getRowCount();
+        dashboardOrderLbl.setText(String.valueOf(salesCount));
+
+        int totalSales = 0;
+        for (int i = 0; i < purchase.getRowCount(); i++) {
+            totalSales += Integer.parseInt(purchase.getValueAt(i, 1).toString());
+        }
+        dashboardSalesLbl.setText(String.valueOf(totalSales));
+
     }
 
     @SuppressWarnings("unchecked")
@@ -1119,8 +1104,10 @@ public class pharmacy extends javax.swing.JFrame {
         purcharseHistoryTable.getTableHeader().setReorderingAllowed(false);
         jScrollPane5.setViewportView(purcharseHistoryTable);
         if (purcharseHistoryTable.getColumnModel().getColumnCount() > 0) {
-            purcharseHistoryTable.getColumnModel().getColumn(0).setResizable(false);
+            purcharseHistoryTable.getColumnModel().getColumn(0).setMinWidth(160);
+            purcharseHistoryTable.getColumnModel().getColumn(0).setPreferredWidth(160);
             purcharseHistoryTable.getColumnModel().getColumn(1).setResizable(false);
+            purcharseHistoryTable.getColumnModel().getColumn(1).setPreferredWidth(30);
             purcharseHistoryTable.getColumnModel().getColumn(2).setResizable(false);
             purcharseHistoryTable.getColumnModel().getColumn(3).setResizable(false);
         }
@@ -1150,6 +1137,7 @@ public class pharmacy extends javax.swing.JFrame {
             outOfStockTable.getColumnModel().getColumn(0).setResizable(false);
             outOfStockTable.getColumnModel().getColumn(1).setResizable(false);
             outOfStockTable.getColumnModel().getColumn(2).setResizable(false);
+            outOfStockTable.getColumnModel().getColumn(2).setPreferredWidth(130);
         }
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -1250,9 +1238,11 @@ public class pharmacy extends javax.swing.JFrame {
         jScrollPane1.setViewportView(medsTable);
         if (medsTable.getColumnModel().getColumnCount() > 0) {
             medsTable.getColumnModel().getColumn(0).setResizable(false);
+            medsTable.getColumnModel().getColumn(0).setPreferredWidth(150);
             medsTable.getColumnModel().getColumn(1).setResizable(false);
             medsTable.getColumnModel().getColumn(2).setResizable(false);
             medsTable.getColumnModel().getColumn(3).setResizable(false);
+            medsTable.getColumnModel().getColumn(3).setPreferredWidth(120);
         }
 
         jLabel11.setText("Search Meds");
@@ -1305,9 +1295,12 @@ public class pharmacy extends javax.swing.JFrame {
         jScrollPane4.setViewportView(orderTable);
         if (orderTable.getColumnModel().getColumnCount() > 0) {
             orderTable.getColumnModel().getColumn(0).setResizable(false);
+            orderTable.getColumnModel().getColumn(0).setPreferredWidth(140);
             orderTable.getColumnModel().getColumn(1).setResizable(false);
+            orderTable.getColumnModel().getColumn(1).setPreferredWidth(100);
             orderTable.getColumnModel().getColumn(2).setResizable(false);
             orderTable.getColumnModel().getColumn(3).setResizable(false);
+            orderTable.getColumnModel().getColumn(3).setPreferredWidth(120);
         }
 
         totalTxt.setEditable(false);
@@ -1506,8 +1499,11 @@ public class pharmacy extends javax.swing.JFrame {
         jScrollPane3.setViewportView(salesTable);
         if (salesTable.getColumnModel().getColumnCount() > 0) {
             salesTable.getColumnModel().getColumn(0).setResizable(false);
+            salesTable.getColumnModel().getColumn(0).setPreferredWidth(100);
             salesTable.getColumnModel().getColumn(1).setResizable(false);
+            salesTable.getColumnModel().getColumn(1).setPreferredWidth(80);
             salesTable.getColumnModel().getColumn(2).setResizable(false);
+            salesTable.getColumnModel().getColumn(2).setPreferredWidth(60);
         }
 
         javax.swing.GroupLayout dailyChartLayout = new javax.swing.GroupLayout(dailyChart);
@@ -2041,13 +2037,29 @@ public class pharmacy extends javax.swing.JFrame {
             new String [] {
                 "Medicine Name", "Price", "Stock", "Formulation"
             }
-        ));
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
         medsTable1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 medsTable1MouseClicked(evt);
             }
         });
         jScrollPane2.setViewportView(medsTable1);
+        if (medsTable1.getColumnModel().getColumnCount() > 0) {
+            medsTable1.getColumnModel().getColumn(0).setResizable(false);
+            medsTable1.getColumnModel().getColumn(0).setPreferredWidth(150);
+            medsTable1.getColumnModel().getColumn(1).setResizable(false);
+            medsTable1.getColumnModel().getColumn(2).setResizable(false);
+            medsTable1.getColumnModel().getColumn(3).setResizable(false);
+            medsTable1.getColumnModel().getColumn(3).setPreferredWidth(120);
+        }
 
         searchInventory.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
         searchInventory.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
@@ -2159,6 +2171,7 @@ public class pharmacy extends javax.swing.JFrame {
         supplier.setBackground(defaultColor);
 
         jTabbedPane1.setSelectedIndex(0);
+        dashboardSalesCount();
     }//GEN-LAST:event_homeMouseClicked
 
     private void homeMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_homeMouseEntered
@@ -2216,7 +2229,8 @@ public class pharmacy extends javax.swing.JFrame {
         DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
         model.setRowCount(0);
         todaySaleToDB();
-        dailyChart();
+        dailySales();
+        dailyLineChart();
     }//GEN-LAST:event_salesMouseClicked
 
     private void salesMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_salesMouseEntered
@@ -2299,31 +2313,25 @@ public class pharmacy extends javax.swing.JFrame {
 
                 switch (choice) {
                     case JOptionPane.YES_OPTION:
-                        orderCount++;
-                        saleCount += tot;
-                        dashboardOrderLbl.setText(String.valueOf(orderCount));
-                        dashboardSalesLbl.setText(String.valueOf(saleCount));
-
                         buy();
                         showReceipt r = new showReceipt();
                         soldMedsToDB();
                         purchaseHistory();
+                        dashboardSalesCount();
                         clearWhenBuy();
                         DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
                         r.setVisible(true);
                         r.showToReceipt(order, pay, ch, discountAmount);
                         order.setRowCount(0);
+                        //dito lang sya ibabalik sa 0 kasi need pa ipasa value nya sa receipt
+                        discountAmount = 0;
                         break;
 
                     case JOptionPane.NO_OPTION:
-                        orderCount++;
-                        saleCount += tot;
-                        dashboardOrderLbl.setText(String.valueOf(orderCount));
-                        dashboardSalesLbl.setText(String.valueOf(saleCount));
-
                         buy();
                         soldMedsToDB();
                         purchaseHistory();
+                        dashboardSalesCount();
                         DefaultTableModel order1 = (DefaultTableModel) orderTable.getModel();
                         order1.setRowCount(0);
                         clearWhenBuy();
@@ -2333,19 +2341,18 @@ public class pharmacy extends javax.swing.JFrame {
 
                 }
             }
-        } catch (NumberFormatException e) {
-            //JOptionPane.showMessageDialog(this, "Enter Valid Amount");
-            System.out.println("buy action error - NumberFormatException: " + e.getMessage());
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            System.out.println("buy action error - NullPointerException: " + e.getMessage());
-            e.printStackTrace();
+        } catch (NumberFormatException | NullPointerException e) {
+            JOptionPane.showMessageDialog(this, "Enter Valid Amount");
         }
 
 
     }//GEN-LAST:event_buyActionPerformed
 
     private void medsTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_medsTableMouseClicked
+        discount.setSelected(false);
+        payment.setText("");
+        change.setText("");
+        buy.setEnabled(false);
         int selectrow = medsTable.getSelectedRow();
         int stock = Integer.parseInt(medsTable.getValueAt(selectrow, 2).toString());
 
@@ -2526,7 +2533,10 @@ public class pharmacy extends javax.swing.JFrame {
             int isSure = JOptionPane.showConfirmDialog(null, "Are you sure?", "Confirmation", JOptionPane.YES_NO_OPTION);
             if (isSure == JOptionPane.YES_OPTION) {
                 try {
-                    String medsName = newName.getText();
+                    //para iconvert ang 1st letter ng medicine to uppercase
+                    String defaultName = newName.getText();
+                    String medsName = Character.toUpperCase(defaultName.charAt(0)) + defaultName.substring(1);
+
                     int medsStock = Integer.parseInt(newStock.getText());
                     int medPrice = Integer.parseInt(newPrice.getText());
                     String formulation = formulationCombo.getSelectedItem().toString();
@@ -2671,6 +2681,9 @@ public class pharmacy extends javax.swing.JFrame {
 
     private void orderTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_orderTableMouseClicked
         discount.setSelected(false);
+        payment.setText("");
+        change.setText("");
+        buy.setEnabled(false);
         int selectedRow = orderTable.getSelectedRow();
         int price = Integer.parseInt(orderTable.getValueAt(selectedRow, 2).toString());
         String formulation = orderTable.getValueAt(selectedRow, 3).toString();
