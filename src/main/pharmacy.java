@@ -59,7 +59,7 @@ public class pharmacy extends javax.swing.JFrame {
     private final String url = "jdbc:mysql://localhost:3306/pharma";
     private final String username = "root";
     private final String password = "";
-    private final String selectCommand = "SELECT * FROM medicine";
+    private final String selectCommand = "SELECT * FROM medicine ORDER BY meds_name";
 
     Connection con;
     PreparedStatement pst;
@@ -291,7 +291,7 @@ public class pharmacy extends javax.swing.JFrame {
     private void dailyLineChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
-        
+
         int rowCount = salesTable.getRowCount();
         dataset.clear();
         for (int row = 0; row < rowCount; row++) {
@@ -325,30 +325,36 @@ public class pharmacy extends javax.swing.JFrame {
         barChartPanelDaily.validate(); // Ensure proper layout and display
 
     }
-   
+
     private void showInOrderTable() {
         try {
+            int selectrow = medsTable.getSelectedRow();
+            int stock = Integer.parseInt(medsTable.getValueAt(selectrow, 2).toString());
+
             qty = Integer.parseInt(JOptionPane.showInputDialog("Quantity"));
 
-            discount.setSelected(false);
-            int selectrow = medsTable.getSelectedRow();
-            String itemName = medsTable.getValueAt(selectrow, 0).toString();
-            int price = Integer.parseInt(medsTable.getValueAt(selectrow, 1).toString());
-            int quantity = qty;
-            String formulation = medsTable.getValueAt(selectrow, 3).toString();
-            price *= quantity;
+            if (qty > stock) {
+                JOptionPane.showMessageDialog(null, "Not Enough Stock!");
+            } else {
+                discount.setSelected(false);
+                String itemName = medsTable.getValueAt(selectrow, 0).toString();
+                int price = Integer.parseInt(medsTable.getValueAt(selectrow, 1).toString());
+                int quantity = qty;
+                String formulation = medsTable.getValueAt(selectrow, 3).toString();
+                price *= quantity;
 
-            total += price;
-            if (formulation.equals("Generic")) {
-                genericsPrice += price;
+                total += price;
+                if (formulation.equals("Generic")) {
+                    genericsPrice += price;
+                }
+
+                DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
+                //store sa array of object
+                Object[] order = {itemName, quantity, price, formulation};
+                df.addRow(order);
+
+                totalTxt.setText(String.valueOf(total));
             }
-
-            DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
-            //store sa array of object
-            Object[] order = {itemName, quantity, price, formulation};
-            df.addRow(order);
-
-            totalTxt.setText(String.valueOf(total));
 
         } catch (NumberFormatException | NullPointerException e) {
             JOptionPane.showMessageDialog(null, "Please Enter Valid Amount!");
