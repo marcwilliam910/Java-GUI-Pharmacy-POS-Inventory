@@ -48,10 +48,9 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardOptionDesign();
         monthlyBarChart();
         buttonEnabled();
-        dailySales();
+        dailyTable();
         purchaseHistory();
         dashboardSalesCount();
-        weeklyPieChart();
     }
 
     //CONNECTOR SA XAMPP MYSQL    
@@ -174,7 +173,7 @@ public class pharmacy extends javax.swing.JFrame {
 
     //used in line chart, the SUM of the total_price from the sold_medicine table was used, using today's date condition.
     //and it will be sent into the daily sales table as the total amount sold for today.
-    private void todaySaleToDB() {
+    private void todaySalesToDailyDB() {
         try {
             //to get the todays date: ex June 17, 2023
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
@@ -199,8 +198,9 @@ public class pharmacy extends javax.swing.JFrame {
             }
 
             //para makuha ang date sa last row ng daily_sales
+            //convert the date(varchar) column to date datatype
             String dateCondition = null;
-            pst = con.prepareStatement("SELECT date FROM daily_sales ORDER BY date DESC LIMIT 1");
+            pst = con.prepareStatement("SELECT date FROM daily_sales ORDER BY STR_TO_DATE(date, '%M %d, %Y') DESC LIMIT 1");
             rs = pst.executeQuery();
             if (rs.next()) {
                 dateCondition = rs.getString(1);
@@ -208,7 +208,7 @@ public class pharmacy extends javax.swing.JFrame {
 
             //para lang malaman kung ang date today ay katulad ng last row sa daily sales,
             //kasi dapat isang beses lang mag insert, ang sumunod ay i-uupdate nalang ang total_sale
-            if (!formattedDate.equals(dateCondition)) {
+            if (!formattedDate.equals(dateCondition) || dateCondition == null) {
                 pst = con.prepareStatement("INSERT INTO daily_sales(date, day, total_sale) VALUES(?,?,?)");
                 pst.setString(1, formattedDate);
                 pst.setString(2, formattedDay);
@@ -230,15 +230,15 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     //for line/daily chart
-    private void dailySales() {
+    private void dailyTable() {
         try {
-            DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
+            DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
             String date;
             String day;
             double totalSale;
 
-            //subquery para last 7 days lang ang kukunin nya
-            pst = con.prepareStatement("SELECT date, day, total_sale FROM daily_sales WHERE ID > (SELECT MAX(ID) - 7 FROM daily_sales)");
+            //subquery para last 7 days lang ang kukunin nya, -8 kasi hindi where id >=
+            pst = con.prepareStatement("SELECT date, day, total_sale FROM daily_sales WHERE ID > (SELECT MAX(ID) - 8 FROM daily_sales)");
             rs = pst.executeQuery();
 
             while (rs.next()) {
@@ -258,9 +258,9 @@ public class pharmacy extends javax.swing.JFrame {
 
     private void dailyLineChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
+        DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
 
-        int rowCount = salesTable.getRowCount();
+        int rowCount = dailySalesTable.getRowCount();
         dataset.clear();
         for (int row = 0; row < rowCount; row++) {
             String day = model.getValueAt(row, 1).toString();
@@ -268,7 +268,7 @@ public class pharmacy extends javax.swing.JFrame {
 
             dataset.addValue(income, "Income", day);
         }
-        JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
+        JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, false, true, false);
         chart.setBackgroundPaint(new Color(240, 240, 240));
 
         CategoryPlot plot = chart.getCategoryPlot();
@@ -295,14 +295,354 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     //for pie/weekly chart
+    //get the total sales in daily sales db if its in week range: ex 1-7, 8-14 ... and same month, using the 2 functions below
+    private void dailySalesToWeeklyDB() {
+        try {
+            String[][] daysAWeek = {
+                {"1", "7"},
+                {"8", "14"},
+                {"15", "21"},
+                {"22", "28"},
+                {"29", "31"}
+            };
+            String[] week = {"Week 1", "Week 2", "Week 3", "Week 4", "Week 5"};
+
+            int weekSale = 0;
+
+            LocalDate today = LocalDate.now();
+            String todaysDate = today.getMonth() + " " + today.getYear();
+
+            //get the day of the last row of daily sales and use as condition to know what week of the month now
+            int day = 0;
+            String dailySalesDate;
+            String dayString;
+            pst = con.prepareStatement("SELECT date FROM daily_sales");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                dailySalesDate = rs.getString(1);
+                dayString = dailySalesDate.substring(dailySalesDate.indexOf(" ") + 1, dailySalesDate.indexOf(",")).trim();
+                day = Integer.parseInt(dayString);
+            }
+
+            //get the week of last row in weekly sale to know if the system will insert of update
+            String weekCondition = null;
+            pst = con.prepareStatement("SELECT week FROM weekly_sales");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                weekCondition = rs.getString(1);
+            }
+
+            if (weekCondition == null) {
+                weeklySalesIfNull(day, daysAWeek, week, todaysDate, weekSale);
+            } else {
+                weeklySalesIfNotNull(day, daysAWeek, week, todaysDate, weekSale, weekCondition);
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    //check if weekly sales db have row
+    private void weeklySalesIfNotNull(int day, String daysAWeek[][], String week[], String todaysDate, int weekSale, String weekCondition) {
+        LocalDate today = LocalDate.now();
+        if (day <= 7) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[0][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[0][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+
+                if (weekCondition.equals("Week 5")) {
+                    pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                    pst.setString(1, todaysDate);
+                    pst.setString(2, week[0]);
+                    pst.setInt(3, weekSale);
+                    pst.executeUpdate();
+                } else {
+                    pst = con.prepareStatement("UPDATE weekly_sales SET total_sale = ? WHERE date = ? AND week = ?");
+                    pst.setInt(1, weekSale);
+                    pst.setString(2, todaysDate);
+                    pst.setString(3, week[0]);
+                    pst.executeUpdate();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (day <= 14) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[1][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[1][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+
+                if (weekCondition.equals("Week 1")) {
+                    pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                    pst.setString(1, todaysDate);
+                    pst.setString(2, week[1]);
+                    pst.setInt(3, weekSale);
+                    pst.executeUpdate();
+                } else {
+                    pst = con.prepareStatement("UPDATE weekly_sales SET total_sale = ? WHERE date = ? AND week = ?");
+                    pst.setInt(1, weekSale);
+                    pst.setString(2, todaysDate);
+                    pst.setString(3, week[1]);
+                    pst.executeUpdate();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (day <= 21) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[2][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[2][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+
+                if (weekCondition.equals("Week 2")) {
+                    pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                    pst.setString(1, todaysDate);
+                    pst.setString(2, week[2]);
+                    pst.setInt(3, weekSale);
+                    pst.executeUpdate();
+                } else {
+                    pst = con.prepareStatement("UPDATE weekly_sales SET total_sale = ? WHERE date = ? AND week = ?");
+                    pst.setInt(1, weekSale);
+                    pst.setString(2, todaysDate);
+                    pst.setString(3, week[2]);
+                    pst.executeUpdate();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (day <= 28) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[3][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[3][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+
+                if (weekCondition.equals("Week 1")) {
+                    pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                    pst.setString(1, todaysDate);
+                    pst.setString(2, week[3]);
+                    pst.setInt(3, weekSale);
+                    pst.executeUpdate();
+                } else {
+                    pst = con.prepareStatement("UPDATE weekly_sales SET total_sale = ? WHERE date = ? AND week = ?");
+                    pst.setInt(1, weekSale);
+                    pst.setString(2, todaysDate);
+                    pst.setString(3, week[3]);
+                    pst.executeUpdate();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[4][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[4][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+
+                if (weekCondition.equals("Week 4")) {
+                    pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                    pst.setString(1, todaysDate);
+                    pst.setString(2, week[4]);
+                    pst.setInt(3, weekSale);
+                    pst.executeUpdate();
+                } else {
+                    pst = con.prepareStatement("UPDATE weekly_sales SET total_sale = ? WHERE date = ? AND week = ?");
+                    pst.setInt(1, weekSale);
+                    pst.setString(2, todaysDate);
+                    pst.setString(3, week[4]);
+                    pst.executeUpdate();
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    private void weeklySalesIfNull(int day, String daysAWeek[][], String week[], String todaysDate, int weekSale) {
+        LocalDate today = LocalDate.now();
+        if (day <= 7) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[0][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[0][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+                pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                pst.setString(1, todaysDate);
+                pst.setString(2, week[0]);
+                pst.setInt(3, weekSale);
+                pst.executeUpdate();
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (day <= 14) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[1][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[1][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+                pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                pst.setString(1, todaysDate);
+                pst.setString(2, week[1]);
+                pst.setInt(3, weekSale);
+                pst.executeUpdate();
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (day <= 21) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[2][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[2][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+                pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                pst.setString(1, todaysDate);
+                pst.setString(2, week[2]);
+                pst.setInt(3, weekSale);
+                pst.executeUpdate();
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (day <= 28) {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[3][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[3][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+                pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                pst.setString(1, todaysDate);
+                pst.setString(2, week[3]);
+                pst.setInt(3, weekSale);
+                pst.executeUpdate();
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            try {
+                String startOfWeek = today.getMonth().toString() + " " + daysAWeek[4][0] + ", " + today.getYear();
+                String endOfWeek = today.getMonth().toString() + " " + daysAWeek[4][1] + ", " + today.getYear();
+
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst.setString(1, startOfWeek);
+                pst.setString(2, endOfWeek);
+                rs = pst.executeQuery();
+                if (rs.next()) {
+                    weekSale = rs.getInt(1);
+                }
+                pst = con.prepareStatement("INSERT INTO weekly_sales(date, week, total_sale) VALUES(?,?,?)");
+                pst.setString(1, todaysDate);
+                pst.setString(2, week[4]);
+                pst.setInt(3, weekSale);
+                pst.executeUpdate();
+            } catch (SQLException ex) {
+                Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    //to populate weekly table
+    private void weeklyTable() {
+        try {
+            //to get todays date: ex. June 2023
+            LocalDate today = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+            String todaysDate = today.format(formatter);
+            
+            DefaultTableModel model = (DefaultTableModel) weeklySalesTable.getModel();
+            String date, week;
+            int totalSale;
+            
+            
+            pst = con.prepareStatement("SELECT date, week, total_sale FROM weekly_sales WHERE date = ?");
+            pst.setString(1, todaysDate);
+            rs = pst.executeQuery();
+            while(rs.next()){
+                date = rs.getString(1);
+                week = rs.getString(2);
+                totalSale = rs.getInt(3);
+                
+                model.addRow(new Object[]{date, week, totalSale});
+            }
+            
+        } catch (SQLException | NullPointerException ex) {
+            String errorMessage = ex.getMessage();
+            System.out.println("Error occurred dailyChart: " + errorMessage);
+        }
+    }
+    //to set the populated weekly table to pie chart
     private void weeklyPieChart() {
         DefaultPieDataset pieDataset = new DefaultPieDataset();
-        pieDataset.setValue("Week 1", 35000);
-        pieDataset.setValue("Week 2", 29000);
-        pieDataset.setValue("Week 3", 41000);
-        pieDataset.setValue("Week 4", 25000);
+        DefaultTableModel model = (DefaultTableModel) weeklySalesTable.getModel();
+        
+        for(int i = 0; i < model.getRowCount(); i++){
+            String week = model.getValueAt(i, 1).toString();
+            int sale = Integer.parseInt(model.getValueAt(i, 2).toString());
+            
+            pieDataset.setValue(week, sale);
+        }
+        //get the date to display
+        String date = model.getValueAt(0, 0).toString();
+        weeklyIncomeChartLbl.setText(date);
 
-        JFreeChart chart = ChartFactory.createPieChart3D("", pieDataset, true, true, true);
+
+        JFreeChart chart = ChartFactory.createPieChart3D("", pieDataset, false, true, true);
         chart.setBackgroundPaint(new Color(240, 240, 240));
         // Get the plot of the pie chart
         PiePlot3D plot = (PiePlot3D) chart.getPlot();
@@ -313,8 +653,12 @@ public class pharmacy extends javax.swing.JFrame {
         Font labelFont = new Font("SansSerif", Font.PLAIN, 20);
         plot.setLabelFont(labelFont);
 
+        plot.setDataset(pieDataset);
+        
         ChartPanel chartPanel = new ChartPanel(chart);
+        pieChartPanelWeekly.removeAll();
         pieChartPanelWeekly.add(chartPanel);
+        pieChartPanelWeekly.validate();
 
     }
 
@@ -652,19 +996,22 @@ public class pharmacy extends javax.swing.JFrame {
         change = new javax.swing.JTextField();
         discount = new javax.swing.JCheckBox();
         salesTab = new javax.swing.JPanel();
-        jTabbedPane2 = new javax.swing.JTabbedPane();
+        dailyWeeklyMonthlyTab = new javax.swing.JTabbedPane();
         dailyChart = new javax.swing.JPanel();
         jLabel35 = new javax.swing.JLabel();
         prevDaily = new javax.swing.JLabel();
         nextDaily = new javax.swing.JLabel();
         lineChartPanelDaily = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
-        salesTable = new javax.swing.JTable();
+        dailySalesTable = new javax.swing.JTable();
         weeklyChart = new javax.swing.JPanel();
         jLabel37 = new javax.swing.JLabel();
         nextWeekly = new javax.swing.JLabel();
         prevWeekly = new javax.swing.JLabel();
         pieChartPanelWeekly = new javax.swing.JPanel();
+        jScrollPane7 = new javax.swing.JScrollPane();
+        weeklySalesTable = new javax.swing.JTable();
+        weeklyIncomeChartLbl = new javax.swing.JLabel();
         monthlyChart = new javax.swing.JPanel();
         jLabel32 = new javax.swing.JLabel();
         prevMonth = new javax.swing.JLabel();
@@ -1495,7 +1842,12 @@ public class pharmacy extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("tab2", posTab);
 
-        jTabbedPane2.setOpaque(true);
+        dailyWeeklyMonthlyTab.setOpaque(true);
+        dailyWeeklyMonthlyTab.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                dailyWeeklyMonthlyTabMouseClicked(evt);
+            }
+        });
 
         jLabel35.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel35.setText(" Daily Sales Chart");
@@ -1533,7 +1885,7 @@ public class pharmacy extends javax.swing.JFrame {
 
         lineChartPanelDaily.setLayout(new java.awt.BorderLayout());
 
-        salesTable.setModel(new javax.swing.table.DefaultTableModel(
+        dailySalesTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
 
             },
@@ -1549,15 +1901,15 @@ public class pharmacy extends javax.swing.JFrame {
                 return canEdit [columnIndex];
             }
         });
-        salesTable.getTableHeader().setReorderingAllowed(false);
-        jScrollPane3.setViewportView(salesTable);
-        if (salesTable.getColumnModel().getColumnCount() > 0) {
-            salesTable.getColumnModel().getColumn(0).setResizable(false);
-            salesTable.getColumnModel().getColumn(0).setPreferredWidth(100);
-            salesTable.getColumnModel().getColumn(1).setResizable(false);
-            salesTable.getColumnModel().getColumn(1).setPreferredWidth(80);
-            salesTable.getColumnModel().getColumn(2).setResizable(false);
-            salesTable.getColumnModel().getColumn(2).setPreferredWidth(60);
+        dailySalesTable.getTableHeader().setReorderingAllowed(false);
+        jScrollPane3.setViewportView(dailySalesTable);
+        if (dailySalesTable.getColumnModel().getColumnCount() > 0) {
+            dailySalesTable.getColumnModel().getColumn(0).setResizable(false);
+            dailySalesTable.getColumnModel().getColumn(0).setPreferredWidth(100);
+            dailySalesTable.getColumnModel().getColumn(1).setResizable(false);
+            dailySalesTable.getColumnModel().getColumn(1).setPreferredWidth(80);
+            dailySalesTable.getColumnModel().getColumn(2).setResizable(false);
+            dailySalesTable.getColumnModel().getColumn(2).setPreferredWidth(60);
         }
 
         javax.swing.GroupLayout dailyChartLayout = new javax.swing.GroupLayout(dailyChart);
@@ -1602,7 +1954,7 @@ public class pharmacy extends javax.swing.JFrame {
                         .addGap(125, 125, 125))))
         );
 
-        jTabbedPane2.addTab("Daily ", new javax.swing.ImageIcon(getClass().getResource("/icons/daily.png")), dailyChart); // NOI18N
+        dailyWeeklyMonthlyTab.addTab("Daily ", new javax.swing.ImageIcon(getClass().getResource("/icons/daily.png")), dailyChart); // NOI18N
 
         jLabel37.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel37.setText(" Weekly Income Chart");
@@ -1640,6 +1992,38 @@ public class pharmacy extends javax.swing.JFrame {
 
         pieChartPanelWeekly.setLayout(new java.awt.BorderLayout());
 
+        weeklySalesTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Date", "Week", "Sales"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        weeklySalesTable.getTableHeader().setReorderingAllowed(false);
+        jScrollPane7.setViewportView(weeklySalesTable);
+        if (weeklySalesTable.getColumnModel().getColumnCount() > 0) {
+            weeklySalesTable.getColumnModel().getColumn(0).setResizable(false);
+            weeklySalesTable.getColumnModel().getColumn(0).setPreferredWidth(100);
+            weeklySalesTable.getColumnModel().getColumn(1).setResizable(false);
+            weeklySalesTable.getColumnModel().getColumn(1).setPreferredWidth(80);
+            weeklySalesTable.getColumnModel().getColumn(2).setResizable(false);
+            weeklySalesTable.getColumnModel().getColumn(2).setPreferredWidth(60);
+        }
+
+        weeklyIncomeChartLbl.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        weeklyIncomeChartLbl.setForeground(new java.awt.Color(255, 0, 51));
+        weeklyIncomeChartLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        weeklyIncomeChartLbl.setText("Month");
+
         javax.swing.GroupLayout weeklyChartLayout = new javax.swing.GroupLayout(weeklyChart);
         weeklyChart.setLayout(weeklyChartLayout);
         weeklyChartLayout.setHorizontalGroup(
@@ -1654,8 +2038,12 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap(171, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, weeklyChartLayout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(pieChartPanelWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 617, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(19, 19, 19))
+                .addComponent(jScrollPane7, javax.swing.GroupLayout.PREFERRED_SIZE, 237, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(weeklyIncomeChartLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 557, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pieChartPanelWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 592, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20))
         );
         weeklyChartLayout.setVerticalGroup(
             weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1669,12 +2057,20 @@ public class pharmacy extends javax.swing.JFrame {
                     .addGroup(weeklyChartLayout.createSequentialGroup()
                         .addGap(14, 14, 14)
                         .addComponent(prevWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 46, Short.MAX_VALUE)
-                .addComponent(pieChartPanelWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 443, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(31, 31, 31))
+                .addGroup(weeklyChartLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(weeklyChartLayout.createSequentialGroup()
+                        .addGap(101, 101, 101)
+                        .addComponent(jScrollPane7, javax.swing.GroupLayout.PREFERRED_SIZE, 298, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(weeklyChartLayout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addComponent(weeklyIncomeChartLbl, javax.swing.GroupLayout.DEFAULT_SIZE, 33, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(pieChartPanelWeekly, javax.swing.GroupLayout.PREFERRED_SIZE, 405, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(58, 58, 58))))
         );
 
-        jTabbedPane2.addTab("Weekly", new javax.swing.ImageIcon(getClass().getResource("/icons/weekly.png")), weeklyChart); // NOI18N
+        dailyWeeklyMonthlyTab.addTab("Weekly", new javax.swing.ImageIcon(getClass().getResource("/icons/weekly.png")), weeklyChart); // NOI18N
 
         monthlyChart.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
 
@@ -1750,7 +2146,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGap(30, 30, 30))
         );
 
-        jTabbedPane2.addTab("Monthly", new javax.swing.ImageIcon(getClass().getResource("/icons/monthly.png")), monthlyChart); // NOI18N
+        dailyWeeklyMonthlyTab.addTab("Monthly", new javax.swing.ImageIcon(getClass().getResource("/icons/monthly.png")), monthlyChart); // NOI18N
 
         javax.swing.GroupLayout salesTabLayout = new javax.swing.GroupLayout(salesTab);
         salesTab.setLayout(salesTabLayout);
@@ -1758,13 +2154,13 @@ public class pharmacy extends javax.swing.JFrame {
             salesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(salesTabLayout.createSequentialGroup()
                 .addGap(20, 20, 20)
-                .addComponent(jTabbedPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 884, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(dailyWeeklyMonthlyTab, javax.swing.GroupLayout.PREFERRED_SIZE, 884, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(111, Short.MAX_VALUE))
         );
         salesTabLayout.setVerticalGroup(
             salesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(salesTabLayout.createSequentialGroup()
-                .addComponent(jTabbedPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 641, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(dailyWeeklyMonthlyTab, javax.swing.GroupLayout.PREFERRED_SIZE, 641, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 61, Short.MAX_VALUE))
         );
 
@@ -2279,10 +2675,11 @@ public class pharmacy extends javax.swing.JFrame {
         jTabbedPane1.setSelectedIndex(2);
 
         //table needs to be set to 0 so that only the content from the database will be displayed. it is accumulating additional data when not reset
-        DefaultTableModel model = (DefaultTableModel) salesTable.getModel();
+        DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
         model.setRowCount(0);
-        todaySaleToDB();
-        dailySales();
+        dailyWeeklyMonthlyTab.setSelectedIndex(0);
+        todaySalesToDailyDB();
+        dailyTable();
         dailyLineChart();
     }//GEN-LAST:event_salesMouseClicked
 
@@ -2825,7 +3222,7 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_nextDailyMouseExited
 
     private void prevDailyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevDailyMouseClicked
-        jTabbedPane2.setSelectedIndex(2);
+        dailyWeeklyMonthlyTab.setSelectedIndex(2);
     }//GEN-LAST:event_prevDailyMouseClicked
 
     private void nextMonthMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextMonthMouseEntered
@@ -2849,7 +3246,7 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_prevWeeklyMouseEntered
 
     private void nextDailyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextDailyMouseClicked
-        jTabbedPane2.setSelectedIndex(1);
+        dailyWeeklyMonthlyTab.setSelectedIndex(1);
     }//GEN-LAST:event_nextDailyMouseClicked
 
     private void prevWeeklyMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevWeeklyMouseExited
@@ -2857,11 +3254,11 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_prevWeeklyMouseExited
 
     private void prevWeeklyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevWeeklyMouseClicked
-        jTabbedPane2.setSelectedIndex(0);
+        dailyWeeklyMonthlyTab.setSelectedIndex(0);
     }//GEN-LAST:event_prevWeeklyMouseClicked
 
     private void nextWeeklyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextWeeklyMouseClicked
-        jTabbedPane2.setSelectedIndex(2);
+        dailyWeeklyMonthlyTab.setSelectedIndex(2);
     }//GEN-LAST:event_nextWeeklyMouseClicked
 
     private void prevMonthMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevMonthMouseEntered
@@ -2873,11 +3270,11 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_prevMonthMouseExited
 
     private void prevMonthMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_prevMonthMouseClicked
-        jTabbedPane2.setSelectedIndex(1);
+        dailyWeeklyMonthlyTab.setSelectedIndex(1);
     }//GEN-LAST:event_prevMonthMouseClicked
 
     private void nextMonthMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_nextMonthMouseClicked
-        jTabbedPane2.setSelectedIndex(0);
+        dailyWeeklyMonthlyTab.setSelectedIndex(0);
     }//GEN-LAST:event_nextMonthMouseClicked
 
     private void supplierMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_supplierMouseClicked
@@ -2913,6 +3310,15 @@ public class pharmacy extends javax.swing.JFrame {
     private void discountItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_discountItemStateChanged
         calculateDiscount();
     }//GEN-LAST:event_discountItemStateChanged
+
+    private void dailyWeeklyMonthlyTabMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dailyWeeklyMonthlyTabMouseClicked
+        DefaultTableModel model = (DefaultTableModel) weeklySalesTable.getModel();
+        model.setRowCount(0);
+        
+        dailySalesToWeeklyDB();
+        weeklyTable();
+        weeklyPieChart();
+    }//GEN-LAST:event_dailyWeeklyMonthlyTabMouseClicked
 
     /**
      * @param args the command line arguments
@@ -2961,6 +3367,8 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JTextField currentPrice;
     private javax.swing.JTextField currentStock;
     private javax.swing.JPanel dailyChart;
+    private javax.swing.JTable dailySalesTable;
+    private javax.swing.JTabbedPane dailyWeeklyMonthlyTab;
     private javax.swing.JLabel dashboardIncomeLbl;
     private com.k33ptoo.components.KGradientPanel dashboardIncomePanel;
     private javax.swing.JLabel dashboardOrderLbl;
@@ -3018,8 +3426,8 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JScrollPane jScrollPane6;
+    private javax.swing.JScrollPane jScrollPane7;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTabbedPane jTabbedPane2;
     private com.k33ptoo.components.KGradientPanel kGradientPanel2;
     private com.k33ptoo.components.KGradientPanel kGradientPanel5;
     private javax.swing.JPanel lineChartPanelDaily;
@@ -3047,7 +3455,6 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel sales;
     private javax.swing.JLabel salesLbl;
     private javax.swing.JPanel salesTab;
-    private javax.swing.JTable salesTable;
     private javax.swing.JTextField search;
     private javax.swing.JTextField searchInventory;
     private javax.swing.JPanel supplier;
@@ -3057,6 +3464,8 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JButton updateBtn;
     private javax.swing.JTextField updatePrice;
     private javax.swing.JPanel weeklyChart;
+    private javax.swing.JLabel weeklyIncomeChartLbl;
+    private javax.swing.JTable weeklySalesTable;
     // End of variables declaration//GEN-END:variables
 
 }
