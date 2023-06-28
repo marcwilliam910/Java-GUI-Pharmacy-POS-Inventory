@@ -46,7 +46,6 @@ public class pharmacy extends javax.swing.JFrame {
         outOfStock();
         tableDesign();
         dashboardOptionDesign();
-        monthlyBarChart();
         buttonEnabled();
         dailyTable();
         purchaseHistory();
@@ -171,6 +170,8 @@ public class pharmacy extends javax.swing.JFrame {
         trs2.setRowFilter(RowFilter.regexFilter("(?i)" + med));
     }
 
+    //FOR DAILY SALES - LINE CHART
+    
     //used in line chart, the SUM of the total_price from the sold_medicine table was used, using today's date condition.
     //and it will be sent into the daily sales table as the total amount sold for today.
     private void todaySalesToDailyDB() {
@@ -228,8 +229,7 @@ public class pharmacy extends javax.swing.JFrame {
         }
 
     }
-
-    //for line/daily chart
+    //for daily table and chart
     private void dailyTable() {
         try {
             DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
@@ -255,7 +255,6 @@ public class pharmacy extends javax.swing.JFrame {
             System.out.println("Error occurred dailyChart: " + errorMessage);
         }
     }
-
     private void dailyLineChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
@@ -294,7 +293,8 @@ public class pharmacy extends javax.swing.JFrame {
 
     }
 
-    //for pie/weekly chart
+    //FOR WEEKLY SALES - PIE CHART
+    
     //get the total sales in daily sales db if its in week range: ex 1-7, 8-14 ... and same month, using the 2 functions below
     private void dailySalesToWeeklyDB() {
         try {
@@ -596,7 +596,6 @@ public class pharmacy extends javax.swing.JFrame {
             }
         }
     }
-
     //to populate weekly table
     private void weeklyTable() {
         try {
@@ -604,23 +603,22 @@ public class pharmacy extends javax.swing.JFrame {
             LocalDate today = LocalDate.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
             String todaysDate = today.format(formatter);
-            
+
             DefaultTableModel model = (DefaultTableModel) weeklySalesTable.getModel();
             String date, week;
             int totalSale;
-            
-            
+
             pst = con.prepareStatement("SELECT date, week, total_sale FROM weekly_sales WHERE date = ?");
             pst.setString(1, todaysDate);
             rs = pst.executeQuery();
-            while(rs.next()){
+            while (rs.next()) {
                 date = rs.getString(1);
                 week = rs.getString(2);
                 totalSale = rs.getInt(3);
-                
+
                 model.addRow(new Object[]{date, week, totalSale});
             }
-            
+
         } catch (SQLException | NullPointerException ex) {
             String errorMessage = ex.getMessage();
             System.out.println("Error occurred dailyChart: " + errorMessage);
@@ -630,17 +628,16 @@ public class pharmacy extends javax.swing.JFrame {
     private void weeklyPieChart() {
         DefaultPieDataset pieDataset = new DefaultPieDataset();
         DefaultTableModel model = (DefaultTableModel) weeklySalesTable.getModel();
-        
-        for(int i = 0; i < model.getRowCount(); i++){
+
+        for (int i = 0; i < model.getRowCount(); i++) {
             String week = model.getValueAt(i, 1).toString();
             int sale = Integer.parseInt(model.getValueAt(i, 2).toString());
-            
+
             pieDataset.setValue(week, sale);
         }
         //get the date to display
         String date = model.getValueAt(0, 0).toString();
         weeklyIncomeChartLbl.setText(date);
-
 
         JFreeChart chart = ChartFactory.createPieChart3D("", pieDataset, false, true, true);
         chart.setBackgroundPaint(new Color(240, 240, 240));
@@ -654,7 +651,7 @@ public class pharmacy extends javax.swing.JFrame {
         plot.setLabelFont(labelFont);
 
         plot.setDataset(pieDataset);
-        
+
         ChartPanel chartPanel = new ChartPanel(chart);
         pieChartPanelWeekly.removeAll();
         pieChartPanelWeekly.add(chartPanel);
@@ -662,46 +659,96 @@ public class pharmacy extends javax.swing.JFrame {
 
     }
 
-    //for monthly chart(dummy data)
+    //FOR MONTHLY SALES - BAR CHART
+    
+    //get the total sale in weekly sales db every month and populate it to monthly sales db
+    private void weeklySalesToMonthlyDB() {
+        try {
+            LocalDate currentDate = LocalDate.now();
+
+            // Define the formatter for full month with year
+            DateTimeFormatter formatterFull = DateTimeFormatter.ofPattern("MMMM yyyy");
+
+            // Format the current date using the formatters
+            String fullMonthWithYear = currentDate.format(formatterFull);
+           
+
+            int totalSale = 0;
+            pst = con.prepareStatement("SELECT SUM(total_sale) FROM weekly_sales WHERE date = ?");
+            pst.setString(1, fullMonthWithYear);
+            rs = pst.executeQuery();
+            if (rs.next()) {
+                totalSale = rs.getInt(1);
+            }
+
+            String dateCondition = null;
+            pst = con.prepareStatement("SELECT month_and_year FROM monthly_sales");
+            rs = pst.executeQuery();
+            if(rs.last()){
+                dateCondition = rs.getString(1);
+            }
+            //if the date in monthly sales db is empty or not equal to todays month, insert, but if its equal, just update
+            if(dateCondition == null || !fullMonthWithYear.equals(dateCondition)){
+                pst = con.prepareStatement("INSERT INTO monthly_sales(month_and_year, total_sale) VALUES(?,?)");
+                pst.setString(1, fullMonthWithYear);
+                pst.setInt(2, totalSale);
+                pst.executeUpdate();
+            }
+            else{
+                pst = con.prepareStatement("UPDATE monthly_sales SET total_sale = ? WHERE month_and_year = ?");
+                pst.setInt(1, totalSale);
+                pst.setString(2, fullMonthWithYear);
+                pst.executeUpdate();
+            }
+                
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    //get the data on monthly sales db and display as graph, only 12 months will display even if different year
     private void monthlyBarChart() {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        dataset.setValue(125000, "January", "Jan");
-        dataset.setValue(94543, "February", "Feb");
-        dataset.setValue(100255, "March", "Mar");
-        dataset.setValue(80233, "April", "Apr");
-        dataset.setValue(185000, "May", "May");
-        dataset.setValue(199999, "May", "May");
-        dataset.setValue(90123, "June", "June");
-        dataset.setValue(79320, "July", "July");
-        dataset.setValue(100219, "August", "Aug");
-        dataset.setValue(123878, "September", "Sept");
-        dataset.setValue(99807, "October", "Oct");
-        dataset.setValue(89067, "November", "Nov");
-        dataset.setValue(150000, "December", "Dec");
-
-        JFreeChart chart = ChartFactory.createBarChart3D("", "Months", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
-        chart.setBackgroundPaint(new Color(240, 240, 240));
-
-        CategoryPlot plot = chart.getCategoryPlot();
-
-        Font labelFont = new Font("Arial", Font.BOLD, 16);
-        Font horizontalFont = new Font("Arial", Font.PLAIN, 14);
-        Font verticalFont = new Font("Arial", Font.PLAIN, 14);
-
-        CategoryAxis domainAxis = plot.getDomainAxis();
-        domainAxis.setLabelFont(labelFont);
-        domainAxis.setTickLabelFont(verticalFont);
-
-        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
-        rangeAxis.setLabelFont(labelFont);
-        rangeAxis.setTickLabelFont(horizontalFont);
-
-        plot.setRangeGridlinePaint(Color.black);
-        ChartPanel chartPanel = new ChartPanel(chart);
-
-        barChartPanelMonthly.removeAll();
-        barChartPanelMonthly.add(chartPanel, BorderLayout.CENTER);
-        barChartPanelMonthly.validate();
+        try {
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            String date;
+            int totalSale;
+            
+            pst = con.prepareStatement("SELECT month_and_year, total_sale FROM monthly_sales WHERE ID > (SELECT MAX(ID) - 13 FROM monthly_sales)");
+            rs = pst.executeQuery();
+            
+            while(rs.next()){
+                date = rs.getString(1);
+                totalSale = rs.getInt(2);
+                
+                String shortDate = date.substring(0, 3);
+                dataset.setValue(totalSale, date, shortDate);
+            }
+            
+            JFreeChart chart = ChartFactory.createBarChart3D("", "Months", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
+            chart.setBackgroundPaint(new Color(240, 240, 240));
+            
+            CategoryPlot plot = chart.getCategoryPlot();
+            
+            Font labelFont = new Font("Arial", Font.BOLD, 16);
+            Font horizontalFont = new Font("Arial", Font.PLAIN, 14);
+            Font verticalFont = new Font("Arial", Font.PLAIN, 14);
+            
+            CategoryAxis domainAxis = plot.getDomainAxis();
+            domainAxis.setLabelFont(labelFont);
+            domainAxis.setTickLabelFont(verticalFont);
+            
+            NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+            rangeAxis.setLabelFont(labelFont);
+            rangeAxis.setTickLabelFont(horizontalFont);
+            
+            plot.setRangeGridlinePaint(Color.black);
+            ChartPanel chartPanel = new ChartPanel(chart);
+            
+            barChartPanelMonthly.removeAll();
+            barChartPanelMonthly.add(chartPanel, BorderLayout.CENTER);
+            barChartPanelMonthly.validate();
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
     }
 
@@ -3314,10 +3361,13 @@ public class pharmacy extends javax.swing.JFrame {
     private void dailyWeeklyMonthlyTabMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dailyWeeklyMonthlyTabMouseClicked
         DefaultTableModel model = (DefaultTableModel) weeklySalesTable.getModel();
         model.setRowCount(0);
-        
+
         dailySalesToWeeklyDB();
         weeklyTable();
         weeklyPieChart();
+        
+        weeklySalesToMonthlyDB();
+        monthlyBarChart();
     }//GEN-LAST:event_dailyWeeklyMonthlyTabMouseClicked
 
     /**
