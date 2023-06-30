@@ -3,6 +3,7 @@ package main;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -11,6 +12,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -42,7 +44,7 @@ public class pharmacy extends javax.swing.JFrame {
     public pharmacy() {
         initComponents();
         connect();
-        table(selectCommand);
+        table(SELECT_COMMAND);
         outOfStock();
         tableDesign();
         dashboardOptionDesign();
@@ -50,15 +52,16 @@ public class pharmacy extends javax.swing.JFrame {
         dailyTable();
         purchaseHistory();
         dashboardSalesCount();
+        monthlyBarChart();
     }
 
     //CONNECTOR SA XAMPP MYSQL    
-    private final String url = "jdbc:mysql://localhost:3306/pharma";
-    private final String username = "root";
-    private final String password = "";
+    private final String URL = "jdbc:mysql://localhost:3306/pharma";
+    private final String USERNAME = "root";
+    private final String PASSWORD = "";
 
     //sql command to populate the medsTable
-    private final String selectCommand = "SELECT * FROM medicine ORDER BY meds_name";
+    private final String SELECT_COMMAND = "SELECT * FROM medicine ORDER BY meds_name";
 
     Connection con;
     PreparedStatement pst;
@@ -77,7 +80,7 @@ public class pharmacy extends javax.swing.JFrame {
     private void connect() {
         try {
             Class.forName("com.mysql.jdbc.Driver");
-            con = DriverManager.getConnection(url, username, password);
+            con = DriverManager.getConnection(URL, USERNAME, PASSWORD);
             System.out.println("Database Connected!");
 
         } catch (ClassNotFoundException | SQLException e) {
@@ -171,7 +174,6 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     //FOR DAILY SALES - LINE CHART
-    
     //used in line chart, the SUM of the total_price from the sold_medicine table was used, using today's date condition.
     //and it will be sent into the daily sales table as the total amount sold for today.
     private void todaySalesToDailyDB() {
@@ -229,6 +231,7 @@ public class pharmacy extends javax.swing.JFrame {
         }
 
     }
+
     //for daily table and chart
     private void dailyTable() {
         try {
@@ -237,8 +240,10 @@ public class pharmacy extends javax.swing.JFrame {
             String day;
             double totalSale;
 
-            //subquery para last 7 days lang ang kukunin nya, -8 kasi hindi where id >=
-            pst = con.prepareStatement("SELECT date, day, total_sale FROM daily_sales WHERE ID > (SELECT MAX(ID) - 8 FROM daily_sales)");
+            //used stack for LIFO in displaying on table
+            Stack<Object[]> salesStack = new Stack<>();
+            //subquery para last 20 days lang ang kukunin nya, -8 kasi hindi where id >=
+            pst = con.prepareStatement("SELECT date, day, total_sale FROM daily_sales WHERE ID > (SELECT MAX(ID) - 21 FROM daily_sales)");
             rs = pst.executeQuery();
 
             while (rs.next()) {
@@ -246,28 +251,37 @@ public class pharmacy extends javax.swing.JFrame {
                 day = rs.getString("day");
                 totalSale = rs.getDouble("total_sale");
 
-                model.addRow(new Object[]{date, day, totalSale});
+                salesStack.push(new Object[]{date, day, totalSale});
+            }
 
+            while (!salesStack.empty()) {
+                Object[] saleData = salesStack.pop();
+                date = (String) saleData[0];
+                day = (String) saleData[1];
+                totalSale = (double) saleData[2];
+
+                model.addRow(new Object[]{date, day, totalSale});
             }
 
         } catch (SQLException | NullPointerException ex) {
-            String errorMessage = ex.getMessage();
-            System.out.println("Error occurred dailyChart: " + errorMessage);
+            JOptionPane.showMessageDialog(null, "No Database Found!");
         }
     }
+
     private void dailyLineChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
 
-        int rowCount = dailySalesTable.getRowCount();
+        //display first 7 rows of table in the chart, in descending
+        int rowCount = Math.min(model.getRowCount(), 7);
         dataset.clear();
-        for (int row = 0; row < rowCount; row++) {
+        for (int row = rowCount - 1; row >= 0; row--) {
             String day = model.getValueAt(row, 1).toString();
             double income = Double.parseDouble(model.getValueAt(row, 2).toString());
 
             dataset.addValue(income, "Income", day);
         }
-        JFreeChart chart = ChartFactory.createLineChart("", "Day", "Income", dataset, PlotOrientation.VERTICAL, false, true, false);
+        JFreeChart chart = ChartFactory.createLineChart("", "Last 7 Days", "Income", dataset, PlotOrientation.VERTICAL, false, true, false);
         chart.setBackgroundPaint(new Color(240, 240, 240));
 
         CategoryPlot plot = chart.getCategoryPlot();
@@ -294,7 +308,6 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     //FOR WEEKLY SALES - PIE CHART
-    
     //get the total sales in daily sales db if its in week range: ex 1-7, 8-14 ... and same month, using the 2 functions below
     private void dailySalesToWeeklyDB() {
         try {
@@ -337,8 +350,8 @@ public class pharmacy extends javax.swing.JFrame {
             } else {
                 weeklySalesIfNotNull(day, daysAWeek, week, todaysDate, weekSale, weekCondition);
             }
-        } catch (SQLException ex) {
-            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(null, "No Database Found!");
         }
     }
 
@@ -492,6 +505,7 @@ public class pharmacy extends javax.swing.JFrame {
             }
         }
     }
+
     private void weeklySalesIfNull(int day, String daysAWeek[][], String week[], String todaysDate, int weekSale) {
         LocalDate today = LocalDate.now();
         if (day <= 7) {
@@ -596,6 +610,7 @@ public class pharmacy extends javax.swing.JFrame {
             }
         }
     }
+
     //to populate weekly table
     private void weeklyTable() {
         try {
@@ -624,6 +639,7 @@ public class pharmacy extends javax.swing.JFrame {
             System.out.println("Error occurred dailyChart: " + errorMessage);
         }
     }
+
     //to set the populated weekly table to pie chart
     private void weeklyPieChart() {
         DefaultPieDataset pieDataset = new DefaultPieDataset();
@@ -660,7 +676,6 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     //FOR MONTHLY SALES - BAR CHART
-    
     //get the total sale in weekly sales db every month and populate it to monthly sales db
     private void weeklySalesToMonthlyDB() {
         try {
@@ -671,7 +686,6 @@ public class pharmacy extends javax.swing.JFrame {
 
             // Format the current date using the formatters
             String fullMonthWithYear = currentDate.format(formatterFull);
-           
 
             int totalSale = 0;
             pst = con.prepareStatement("SELECT SUM(total_sale) FROM weekly_sales WHERE date = ?");
@@ -684,70 +698,70 @@ public class pharmacy extends javax.swing.JFrame {
             String dateCondition = null;
             pst = con.prepareStatement("SELECT month_and_year FROM monthly_sales");
             rs = pst.executeQuery();
-            if(rs.last()){
+            if (rs.last()) {
                 dateCondition = rs.getString(1);
             }
             //if the date in monthly sales db is empty or not equal to todays month, insert, but if its equal, just update
-            if(dateCondition == null || !fullMonthWithYear.equals(dateCondition)){
+            if (dateCondition == null || !fullMonthWithYear.equals(dateCondition)) {
                 pst = con.prepareStatement("INSERT INTO monthly_sales(month_and_year, total_sale) VALUES(?,?)");
                 pst.setString(1, fullMonthWithYear);
                 pst.setInt(2, totalSale);
                 pst.executeUpdate();
-            }
-            else{
+            } else {
                 pst = con.prepareStatement("UPDATE monthly_sales SET total_sale = ? WHERE month_and_year = ?");
                 pst.setInt(1, totalSale);
                 pst.setString(2, fullMonthWithYear);
                 pst.executeUpdate();
             }
-                
+
         } catch (SQLException ex) {
             Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
     //get the data on monthly sales db and display as graph, only 12 months will display even if different year
     private void monthlyBarChart() {
         try {
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
             String date;
             int totalSale;
-            
+
             pst = con.prepareStatement("SELECT month_and_year, total_sale FROM monthly_sales WHERE ID > (SELECT MAX(ID) - 13 FROM monthly_sales)");
             rs = pst.executeQuery();
-            
-            while(rs.next()){
+
+            while (rs.next()) {
                 date = rs.getString(1);
                 totalSale = rs.getInt(2);
-                
+
                 String shortDate = date.substring(0, 3);
                 dataset.setValue(totalSale, date, shortDate);
             }
-            
+
             JFreeChart chart = ChartFactory.createBarChart3D("", "Months", "Income", dataset, PlotOrientation.VERTICAL, true, true, false);
             chart.setBackgroundPaint(new Color(240, 240, 240));
-            
+
             CategoryPlot plot = chart.getCategoryPlot();
-            
+
             Font labelFont = new Font("Arial", Font.BOLD, 16);
             Font horizontalFont = new Font("Arial", Font.PLAIN, 14);
             Font verticalFont = new Font("Arial", Font.PLAIN, 14);
-            
+
             CategoryAxis domainAxis = plot.getDomainAxis();
             domainAxis.setLabelFont(labelFont);
             domainAxis.setTickLabelFont(verticalFont);
-            
+
             NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
             rangeAxis.setLabelFont(labelFont);
             rangeAxis.setTickLabelFont(horizontalFont);
-            
+
             plot.setRangeGridlinePaint(Color.black);
             ChartPanel chartPanel = new ChartPanel(chart);
-            
+
             barChartPanelMonthly.removeAll();
             barChartPanelMonthly.add(chartPanel, BorderLayout.CENTER);
             barChartPanelMonthly.validate();
-        } catch (SQLException ex) {
-            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(null, "No Database Found!");
         }
 
     }
@@ -763,6 +777,7 @@ public class pharmacy extends javax.swing.JFrame {
             if (qty > stock) {
                 JOptionPane.showMessageDialog(null, "Not Enough Stock!");
             } else {
+                removeExistingMeds();
                 discount.setSelected(false);
                 String itemName = medsTable.getValueAt(selectrow, 0).toString();
                 int price = Integer.parseInt(medsTable.getValueAt(selectrow, 1).toString());
@@ -770,23 +785,43 @@ public class pharmacy extends javax.swing.JFrame {
                 String formulation = medsTable.getValueAt(selectrow, 3).toString();
                 price *= quantity;
 
-                total += price;
-                if (formulation.equals("Generic")) {
-                    genericsPrice += price;
-                }
-
                 DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
                 //store sa array of object
                 Object[] order = {itemName, quantity, price, formulation};
                 df.addRow(order);
 
-                totalTxt.setText(String.valueOf(total));
             }
 
         } catch (NumberFormatException | NullPointerException e) {
             JOptionPane.showMessageDialog(null, "Please Enter Valid Amount!");
         }
 
+    }
+    //to display total in order table
+    private void setTotal() {
+        DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
+        total = 0;
+        int rowCount = df.getRowCount();
+        for (int i = 0; i < rowCount; i++) {
+            double quantityValue = Double.parseDouble(df.getValueAt(i, 2).toString());
+            total += quantityValue;
+        }
+        totalTxt.setText(String.valueOf(total));
+    }
+    //to remove the medicine in order table if the same medicine is picked
+    private void removeExistingMeds() {
+        int selectrow = medsTable.getSelectedRow();
+        String name = medsTable.getValueAt(selectrow, 0).toString();
+
+        DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
+        int orderRow = orderTable.getRowCount();
+
+        for (int i = 0; i < orderRow; i++) {
+            if (name.equals(orderTable.getValueAt(i, 0))) {
+                order.removeRow(i);
+                break;
+            }
+        }
     }
 
     //will be cleared or returned to an empty state after the item is purchased
@@ -819,7 +854,7 @@ public class pharmacy extends javax.swing.JFrame {
         //since the purchase has been made, the total should be returned to 0.
         total = 0;
 
-        table(selectCommand);
+        table(SELECT_COMMAND);
         outOfStock();
     }
 
@@ -916,33 +951,47 @@ public class pharmacy extends javax.swing.JFrame {
                 }
             }
         } catch (SQLException | NullPointerException ex) {
-            System.out.println("Error in out of stock");
+            JOptionPane.showMessageDialog(null, "No Database Found!");
         }
     }
 
     //calculate the discount if discount checkbox is selected
     private void calculateDiscount() {
         try {
+            //get first the medicine that is "Generic"
+            DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
+            int rowCount = model.getRowCount();
+            genericsPrice = 0.0;
+
+            for (int i = 0; i < rowCount; i++) {
+                String formulation = model.getValueAt(i, 3).toString();
+                if (formulation.equals("Generic")) {
+                    double price = Double.parseDouble(model.getValueAt(i, 2).toString());
+                    genericsPrice += price;
+                }
+            }
+
             if (discount.isSelected()) {
-                int pay = Integer.parseInt(this.payment.getText());
+                int pay = Integer.parseInt(payment.getText());
                 discountAmount = genericsPrice * 0.20;
+
                 double totalWithDiscount = Double.parseDouble(totalTxt.getText()) - discountAmount;
                 int roundedTotal = (int) Math.round(totalWithDiscount);
                 totalTxt.setText(String.valueOf(roundedTotal));
 
-                //To obtain the value of payment, subtract it from the total, and display it as change.
+                // To obtain the value of payment, subtract it from the total, and display it as change.
                 int roundedChange = (int) Math.round(pay - totalWithDiscount);
                 change.setText(String.valueOf(roundedChange));
             } else {
                 totalTxt.setText(String.valueOf(total));
 
-                //to show the change real-time if checkbox is not selected
-                int pay = Integer.parseInt(this.payment.getText());
+                // To show the change real-time if checkbox is not selected
+                int pay = Integer.parseInt(payment.getText());
                 int roundedChange = (int) Math.round(pay - total);
                 change.setText(String.valueOf(roundedChange));
             }
         } catch (NumberFormatException ex) {
-
+            
         }
     }
 
@@ -970,17 +1019,31 @@ public class pharmacy extends javax.swing.JFrame {
 
     //To display the number of orders and total sales for today on the dashboard.
     private void dashboardSalesCount() {
-        //The order count was taken from the purchase history, indicating the number of rows there.
-        DefaultTableModel purchase = (DefaultTableModel) purcharseHistoryTable.getModel();
-        int salesCount = purchase.getRowCount();
-        dashboardOrderLbl.setText(String.valueOf(salesCount));
+        try {
+            //The order count was taken from the purchase history, indicating the number of rows there.
+            DefaultTableModel purchase = (DefaultTableModel) purcharseHistoryTable.getModel();
+            int salesCount = purchase.getRowCount();
+            dashboardOrderLbl.setText(String.valueOf(salesCount));
 
-        //added all the price in purchase history
-        int totalSales = 0;
-        for (int i = 0; i < purchase.getRowCount(); i++) {
-            totalSales += Integer.parseInt(purchase.getValueAt(i, 1).toString());
+            //added all the price in purchase history
+            int totalSales = 0;
+            for (int i = 0; i < purchase.getRowCount(); i++) {
+                totalSales += Integer.parseInt(purchase.getValueAt(i, 1).toString());
+            }
+            dashboardSalesLbl.setText(String.valueOf(totalSales));
+
+            //to display the monthly sale on dashboard
+            int monthlySales = 0;
+            pst = con.prepareStatement("SELECT total_sale FROM monthly_sales");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                monthlySales = rs.getInt(1);
+            }
+            dashboardIncomeLbl.setText(String.valueOf(monthlySales));
+
+        } catch (SQLException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(null, "No Database Found!");
         }
-        dashboardSalesLbl.setText(String.valueOf(totalSales));
 
     }
 
@@ -1517,15 +1580,13 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardIncomePanelLayout.setVerticalGroup(
             dashboardIncomePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(dashboardIncomePanelLayout.createSequentialGroup()
+                .addContainerGap()
                 .addGroup(dashboardIncomePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel36)
                     .addGroup(dashboardIncomePanelLayout.createSequentialGroup()
-                        .addGap(24, 24, 24)
-                        .addComponent(jLabel36))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, dashboardIncomePanelLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(dashboardIncomeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(dashboardIncomeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel31, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jLabel31, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -1644,7 +1705,7 @@ public class pharmacy extends javax.swing.JFrame {
         jTabbedPane1.addTab("tab1", homeTab);
 
         buy.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/buy.png"))); // NOI18N
-        buy.setText(" Buy");
+        buy.setText(" Buy (Enter)");
         buy.setBackground(new java.awt.Color(255, 255, 255));
         buy.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
         buy.setFont(new java.awt.Font("Times New Roman", 1, 24)); // NOI18N
@@ -1766,6 +1827,7 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel16.setBackground(new java.awt.Color(0, 0, 0));
         jLabel16.setFont(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
 
+        payment.setEditable(false);
         payment.setHorizontalAlignment(javax.swing.JTextField.CENTER);
         payment.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         payment.setForeground(new java.awt.Color(0, 51, 255));
@@ -1790,24 +1852,19 @@ public class pharmacy extends javax.swing.JFrame {
         change.setHorizontalAlignment(javax.swing.JTextField.CENTER);
         change.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         change.setForeground(new java.awt.Color(255, 0, 0));
-        change.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                changeActionPerformed(evt);
-            }
-        });
 
-        discount.setText("20% Discount");
+        discount.setText("20% Discount (D)");
         discount.setBackground(new java.awt.Color(255, 255, 255));
-        discount.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        discount.setFont(new java.awt.Font("Segoe UI", 1, 16)); // NOI18N
         discount.setForeground(new java.awt.Color(0, 0, 255));
         discount.addItemListener(new java.awt.event.ItemListener() {
             public void itemStateChanged(java.awt.event.ItemEvent evt) {
                 discountItemStateChanged(evt);
             }
         });
-        discount.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                discountActionPerformed(evt);
+        discount.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                discountKeyPressed(evt);
             }
         });
 
@@ -1816,44 +1873,42 @@ public class pharmacy extends javax.swing.JFrame {
         posTabLayout.setHorizontalGroup(
             posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(posTabLayout.createSequentialGroup()
-                .addGap(66, 66, 66)
-                .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 96, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(search, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(288, 288, 288)
-                .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, posTabLayout.createSequentialGroup()
-                .addContainerGap(35, Short.MAX_VALUE)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(posTabLayout.createSequentialGroup()
-                        .addGap(18, 18, 18)
-                        .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(posTabLayout.createSequentialGroup()
-                                .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(posTabLayout.createSequentialGroup()
-                                        .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 81, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(payment, javax.swing.GroupLayout.PREFERRED_SIZE, 112, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addGroup(posTabLayout.createSequentialGroup()
-                                        .addComponent(jLabel17, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(change, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(posTabLayout.createSequentialGroup()
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(totalTxt))
-                                    .addGroup(posTabLayout.createSequentialGroup()
-                                        .addGap(53, 53, 53)
-                                        .addComponent(discount))))))
+                        .addGap(66, 66, 66)
+                        .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 96, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(search, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(288, 288, 288)
+                        .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(posTabLayout.createSequentialGroup()
-                        .addGap(46, 46, 46)
-                        .addComponent(buy, javax.swing.GroupLayout.PREFERRED_SIZE, 362, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(132, 132, 132))
+                        .addGap(36, 36, 36)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 424, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(posTabLayout.createSequentialGroup()
+                                    .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(posTabLayout.createSequentialGroup()
+                                            .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 81, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                            .addComponent(payment, javax.swing.GroupLayout.PREFERRED_SIZE, 112, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(posTabLayout.createSequentialGroup()
+                                            .addComponent(jLabel17, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                            .addComponent(change, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                    .addGroup(posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(posTabLayout.createSequentialGroup()
+                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                            .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                            .addComponent(totalTxt))
+                                        .addGroup(posTabLayout.createSequentialGroup()
+                                            .addGap(53, 53, 53)
+                                            .addComponent(discount)))))
+                            .addComponent(buy, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 362, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(132, Short.MAX_VALUE))
         );
         posTabLayout.setVerticalGroup(
             posTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1884,7 +1939,7 @@ public class pharmacy extends javax.swing.JFrame {
                             .addComponent(search, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(18, 18, 18)
                         .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 493, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(87, Short.MAX_VALUE))
+                .addContainerGap(89, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("tab2", posTab);
@@ -2066,10 +2121,10 @@ public class pharmacy extends javax.swing.JFrame {
             weeklySalesTable.getColumnModel().getColumn(2).setPreferredWidth(60);
         }
 
-        weeklyIncomeChartLbl.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
-        weeklyIncomeChartLbl.setForeground(new java.awt.Color(255, 0, 51));
         weeklyIncomeChartLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         weeklyIncomeChartLbl.setText("Month");
+        weeklyIncomeChartLbl.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        weeklyIncomeChartLbl.setForeground(new java.awt.Color(255, 0, 51));
 
         javax.swing.GroupLayout weeklyChartLayout = new javax.swing.GroupLayout(weeklyChart);
         weeklyChart.setLayout(weeklyChartLayout);
@@ -2265,6 +2320,9 @@ public class pharmacy extends javax.swing.JFrame {
         addStock.setEditable(false);
         addStock.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         addStock.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                addStockKeyPressed(evt);
+            }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 addStockKeyReleased(evt);
             }
@@ -2276,6 +2334,9 @@ public class pharmacy extends javax.swing.JFrame {
         updatePrice.setEditable(false);
         updatePrice.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         updatePrice.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                updatePriceKeyPressed(evt);
+            }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 updatePriceKeyReleased(evt);
             }
@@ -2323,6 +2384,9 @@ public class pharmacy extends javax.swing.JFrame {
 
         newStock.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         newStock.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                newStockKeyPressed(evt);
+            }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 newStockKeyReleased(evt);
             }
@@ -2344,6 +2408,9 @@ public class pharmacy extends javax.swing.JFrame {
             }
         });
         newPrice.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                newPriceKeyPressed(evt);
+            }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 newPriceKeyReleased(evt);
             }
@@ -2387,6 +2454,11 @@ public class pharmacy extends javax.swing.JFrame {
 
         formulationCombo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Branded", "Generic" }));
         formulationCombo.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        formulationCombo.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                formulationComboKeyPressed(evt);
+            }
+        });
 
         jLabel38.setText("Formulation :");
         jLabel38.setFont(new java.awt.Font("Times New Roman", 1, 20)); // NOI18N
@@ -2667,6 +2739,9 @@ public class pharmacy extends javax.swing.JFrame {
         supplier.setBackground(defaultColor);
 
         jTabbedPane1.setSelectedIndex(0);
+        todaySalesToDailyDB();
+        dailySalesToWeeklyDB();
+        weeklySalesToMonthlyDB();
         dashboardSalesCount();
     }//GEN-LAST:event_homeMouseClicked
 
@@ -2797,16 +2872,21 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_inventoryMouseExited
 
     private void buyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buyActionPerformed
+        performBuyAction();
+    }//GEN-LAST:event_buyActionPerformed
+    //this is the buy button action, i separate it to add key bindings
+    private void performBuyAction() {
         try {
             float pay = Float.parseFloat(payment.getText());
             float tot = Float.parseFloat(totalTxt.getText());
             float ch = Float.parseFloat(change.getText());
 
+            int defaultOption = 1;
             if (pay < tot) {
                 JOptionPane.showMessageDialog(this, "Not Enough Payment");
             } else {
                 String[] options = {"Yes, let me see", "No, I don't", "Cancel Order"};
-                int choice = JOptionPane.showOptionDialog(null, "Do you want to see the receipt?", "Question", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+                int choice = JOptionPane.showOptionDialog(null, "Do you want to see the receipt?", "Question", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[defaultOption]);
 
                 switch (choice) {
                     case JOptionPane.YES_OPTION:
@@ -2814,7 +2894,6 @@ public class pharmacy extends javax.swing.JFrame {
                         showReceipt r = new showReceipt();
                         soldMedsToDB();
                         purchaseHistory();
-                        dashboardSalesCount();
                         clearWhenBuy();
                         DefaultTableModel order = (DefaultTableModel) orderTable.getModel();
                         r.setVisible(true);
@@ -2828,7 +2907,6 @@ public class pharmacy extends javax.swing.JFrame {
                         buy();
                         soldMedsToDB();
                         purchaseHistory();
-                        dashboardSalesCount();
                         DefaultTableModel order1 = (DefaultTableModel) orderTable.getModel();
                         order1.setRowCount(0);
                         clearWhenBuy();
@@ -2838,18 +2916,18 @@ public class pharmacy extends javax.swing.JFrame {
 
                 }
             }
+            payment.setEditable(false);
         } catch (NumberFormatException | NullPointerException e) {
             JOptionPane.showMessageDialog(this, "Enter Valid Amount");
         }
-
-
-    }//GEN-LAST:event_buyActionPerformed
+    }
 
     private void medsTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_medsTableMouseClicked
         discount.setSelected(false);
         payment.setText("");
         change.setText("");
         buy.setEnabled(false);
+        payment.setEditable(true);
         int selectrow = medsTable.getSelectedRow();
         int stock = Integer.parseInt(medsTable.getValueAt(selectrow, 2).toString());
 
@@ -2857,6 +2935,8 @@ public class pharmacy extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "No Stock!");
         } else {
             showInOrderTable();
+            setTotal();
+            payment.requestFocus();
         }
     }//GEN-LAST:event_medsTableMouseClicked
 
@@ -2906,7 +2986,7 @@ public class pharmacy extends javax.swing.JFrame {
                     pst.setString(1, name);
                     pst.executeUpdate();
 
-                    table(selectCommand);
+                    table(SELECT_COMMAND);
                     currentName.setText("");
                     currentPrice.setText("");
                     currentStock.setText("");
@@ -2937,6 +3017,10 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_newPriceActionPerformed
 
     private void updateBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_updateBtnActionPerformed
+        updateAction();
+    }//GEN-LAST:event_updateBtnActionPerformed
+    //for key bindings again
+    private void updateAction() {
         try {
             int isSure = JOptionPane.showConfirmDialog(null, "Are you sure?", "Confirmation", JOptionPane.YES_NO_OPTION);
             if (isSure == JOptionPane.YES_OPTION) {
@@ -2975,7 +3059,7 @@ public class pharmacy extends javax.swing.JFrame {
                     addStock.setText("");
                     this.updatePrice.setText("");
 
-                    table(selectCommand);
+                    table(SELECT_COMMAND);
                     outOfStock();
                     JOptionPane.showMessageDialog(null, "Stock and Price Updated!");
                     updateBtn.setEnabled(false);
@@ -2995,7 +3079,7 @@ public class pharmacy extends javax.swing.JFrame {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "Please enter valid number!");
         }
-    }//GEN-LAST:event_updateBtnActionPerformed
+    }
 
     private void updateBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_updateBtnMouseEntered
         updateBtn.setBackground(Color.red);
@@ -3026,6 +3110,10 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_addStockKeyReleased
 
     private void addNewMedBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addNewMedBtnActionPerformed
+        addMedAction();
+    }//GEN-LAST:event_addNewMedBtnActionPerformed
+    //for key binding
+    private void addMedAction() {
         try {
             int isSure = JOptionPane.showConfirmDialog(null, "Are you sure?", "Confirmation", JOptionPane.YES_NO_OPTION);
             if (isSure == JOptionPane.YES_OPTION) {
@@ -3045,7 +3133,7 @@ public class pharmacy extends javax.swing.JFrame {
                     pst.setString(4, formulation);
                     pst.executeUpdate();
 
-                    table(selectCommand);
+                    table(SELECT_COMMAND);
                     outOfStock();
                     JOptionPane.showMessageDialog(this, "Added Successfully!");
 
@@ -3063,8 +3151,7 @@ public class pharmacy extends javax.swing.JFrame {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "Please enter valid value!");
         }
-    }//GEN-LAST:event_addNewMedBtnActionPerformed
-
+    }
     private void newStockKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_newStockKeyReleased
         if (newStock.getText().isEmpty() || newName.getText().isEmpty() || newPrice.getText().isEmpty()) {
             addNewMedBtn.setEnabled(false);
@@ -3144,7 +3231,9 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_dashboardIncomePanelMouseExited
 
     private void paymentKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyPressed
-
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            performBuyAction();
+        }
     }//GEN-LAST:event_paymentKeyPressed
 
     private void paymentKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyReleased
@@ -3157,12 +3246,17 @@ public class pharmacy extends javax.swing.JFrame {
 
             change.setText(changeDecimal);
             buy.setEnabled(true);
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
         }
+        if (payment.getText().contains(" ")) {
+            buy.setEnabled(false);
+        }
+
     }//GEN-LAST:event_paymentKeyReleased
 
     private void paymentKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyTyped
-        if (payment.getText().matches("[a-zA-Z]+")) {
+        //checks if payment has character
+        if (payment.getText().matches(".*[a-zA-Z].*")) {
             discount.setEnabled(false);
         } else if (payment.getText().isEmpty()) {
             change.setText("");
@@ -3170,11 +3264,17 @@ public class pharmacy extends javax.swing.JFrame {
         } else {
             discount.setEnabled(true);
         }
-    }//GEN-LAST:event_paymentKeyTyped
 
-    private void changeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_changeActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_changeActionPerformed
+        //key binding
+        if (evt.getKeyChar() == 'd' || evt.getKeyChar() == 'D') {
+            if (discount.isSelected()) {
+                discount.setSelected(false);
+            } else {
+                discount.setSelected(true);
+            }
+            evt.consume(); // Consume the event to prevent further processing
+        }
+    }//GEN-LAST:event_paymentKeyTyped
 
     private void orderTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_orderTableMouseClicked
         discount.setSelected(false);
@@ -3195,6 +3295,11 @@ public class pharmacy extends javax.swing.JFrame {
         //to remove the clicked row
         DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
         model.removeRow(selectedRow);
+        payment.requestFocus();
+
+        //used ternary to enable the payment if table is not empty
+        payment.setEditable((model.getRowCount() != 0));
+
     }//GEN-LAST:event_orderTableMouseClicked
 
     private void newNameKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_newNameKeyReleased
@@ -3239,8 +3344,6 @@ public class pharmacy extends javax.swing.JFrame {
         if (log_out == JOptionPane.YES_OPTION) {
             dispose();
             new login().setVisible(true);
-        } else {
-
         }
     }//GEN-LAST:event_logoutMouseClicked
 
@@ -3350,10 +3453,6 @@ public class pharmacy extends javax.swing.JFrame {
         supplierLbl.setForeground(Color.white);
     }//GEN-LAST:event_supplierMouseExited
 
-    private void discountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_discountActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_discountActionPerformed
-
     private void discountItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_discountItemStateChanged
         calculateDiscount();
     }//GEN-LAST:event_discountItemStateChanged
@@ -3365,10 +3464,46 @@ public class pharmacy extends javax.swing.JFrame {
         dailySalesToWeeklyDB();
         weeklyTable();
         weeklyPieChart();
-        
+
         weeklySalesToMonthlyDB();
         monthlyBarChart();
     }//GEN-LAST:event_dailyWeeklyMonthlyTabMouseClicked
+
+    private void discountKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_discountKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            performBuyAction();
+        }
+    }//GEN-LAST:event_discountKeyPressed
+
+    private void addStockKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_addStockKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            updateAction();
+        }
+    }//GEN-LAST:event_addStockKeyPressed
+
+    private void updatePriceKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_updatePriceKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            updateAction();
+        }
+    }//GEN-LAST:event_updatePriceKeyPressed
+
+    private void newStockKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_newStockKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            addMedAction();
+        }
+    }//GEN-LAST:event_newStockKeyPressed
+
+    private void formulationComboKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_formulationComboKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            addMedAction();
+        }
+    }//GEN-LAST:event_formulationComboKeyPressed
+
+    private void newPriceKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_newPriceKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            addMedAction();
+        }
+    }//GEN-LAST:event_newPriceKeyPressed
 
     /**
      * @param args the command line arguments

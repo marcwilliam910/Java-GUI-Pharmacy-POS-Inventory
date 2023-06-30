@@ -1,30 +1,21 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package main;
 
 import java.awt.Color;
+import java.awt.event.KeyEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
-/**
- *
- * @author asus
- */
+
 public class showReceipt extends javax.swing.JFrame {
 
-    /**
-     * Creates new form showReceipt
-     */
     public showReceipt() {
         initComponents();
         receiptDesign();
         removeCorner();
-       
+        kButton1.requestFocus();
     }
     private void receiptDesign(){
         receipt.setText("\t           JLMV Pharmacy\n");
@@ -104,12 +95,19 @@ public class showReceipt extends javax.swing.JFrame {
         jScrollPane3.setViewportView(receipt);
 
         kButton1.setForeground(new java.awt.Color(51, 51, 51));
-        kButton1.setText("Exit");
+        kButton1.setText("Press Enter to Exit");
         kButton1.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        kButton1.setkEndColor(new java.awt.Color(0, 0, 255));
         kButton1.setkHoverForeGround(new java.awt.Color(0, 0, 0));
+        kButton1.setkStartColor(new java.awt.Color(255, 0, 255));
         kButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 kButton1ActionPerformed(evt);
+            }
+        });
+        kButton1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                kButton1KeyPressed(evt);
             }
         });
 
@@ -117,11 +115,13 @@ public class showReceipt extends javax.swing.JFrame {
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 344, javax.swing.GroupLayout.PREFERRED_SIZE)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(kButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(96, 96, 96))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 344, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(24, 24, 24)
+                .addComponent(kButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 295, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -151,9 +151,13 @@ public class showReceipt extends javax.swing.JFrame {
        this.dispose();
     }//GEN-LAST:event_kButton1ActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
+    private void kButton1KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_kButton1KeyPressed
+       if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+           this.dispose();
+       }
+    }//GEN-LAST:event_kButton1KeyPressed
+
+   
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
