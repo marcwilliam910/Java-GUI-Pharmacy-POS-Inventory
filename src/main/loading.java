@@ -33,15 +33,15 @@ public class loading extends javax.swing.JFrame {
 
         Thread loadingThread = new Thread(() -> {
             try {
-                for (int i = 0; i <= 100; i = i + 2) {
+                for (int i = 0; i <= 100; i = i + 4) {
                     TimeUnit.MILLISECONDS.sleep(80);
                     l.percent.setText(i + "%");
 
-                    if (i == 10) l.loading.setText("Getting Ready");
-                    if (i == 20) l.loading.setText("Loading Modules");
-                    if (i == 50) l.loading.setText("Connecting to Database...");
-                    if (i == 70) l.loading.setText("Connection Successful!");
-                    if (i == 90) l.loading.setText("Launching System...");
+                    if (i == 12) l.loading.setText("Getting Ready");
+                    if (i == 28) l.loading.setText("Loading Modules");
+                    if (i == 40) l.loading.setText("Connecting to Database...");
+                    if (i == 60) l.loading.setText("Connection Successful!");
+                    if (i == 80) l.loading.setText("Launching System...");
 
                     l.progress.setValue(i);
                     if (i == 100) {

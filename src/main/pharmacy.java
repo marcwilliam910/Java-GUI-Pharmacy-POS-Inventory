@@ -17,6 +17,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.RowFilter;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
@@ -53,6 +55,10 @@ public class pharmacy extends javax.swing.JFrame {
         purchaseHistory();
         dashboardSalesCount();
         monthlyBarChart();
+        combobox();
+        disableExpensesBtn();
+        callExpensesTables();
+
     }
 
     //CONNECTOR SA XAMPP MYSQL    
@@ -123,36 +129,67 @@ public class pharmacy extends javax.swing.JFrame {
         Font insideFont = new Font("Calibri", Font.PLAIN, 17);
 
         //for table sa pos
-        JTableHeader header = medsTable.getTableHeader();
-        header.setForeground(Color.blue);
-        header.setFont(font);
+        JTableHeader medsTableHeader = medsTable.getTableHeader();
+        medsTableHeader.setForeground(Color.blue);
+        medsTableHeader.setFont(font);
         medsTable.setShowGrid(true);
         medsTable.setGridColor(Color.BLACK);
         medsTable.setFont(insideFont);
+        DefaultTableCellRenderer medsTableRenderer = (DefaultTableCellRenderer) medsTableHeader.getDefaultRenderer();
+        medsTableRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
         //for table sa inventory
-        JTableHeader header1 = medsTable1.getTableHeader();
-        header1.setFont(font);
-        header1.setForeground(Color.blue);
+        JTableHeader medsTable1Header = medsTable1.getTableHeader();
+        medsTable1Header.setFont(font);
+        medsTable1Header.setForeground(Color.blue);
         medsTable1.setShowGrid(true);
         medsTable1.setGridColor(Color.BLACK);
         medsTable1.setFont(insideFont);
+        DefaultTableCellRenderer medsTable1Renderer = (DefaultTableCellRenderer) medsTable1Header.getDefaultRenderer();
+        medsTable1Renderer.setHorizontalAlignment(SwingConstants.CENTER);
 
         //for table sa order
-        JTableHeader header2 = orderTable.getTableHeader();
-        header2.setFont(new Font("Cambria", Font.BOLD, 16));
-        header2.setForeground(Color.red);
+        JTableHeader orderTableHeader = orderTable.getTableHeader();
+        orderTableHeader.setFont(new Font("Cambria", Font.BOLD, 16));
+        orderTableHeader.setForeground(Color.red);
         orderTable.setFont(new Font("Cambria", Font.PLAIN, 14));
+        DefaultTableCellRenderer orderRenderer = (DefaultTableCellRenderer) orderTableHeader.getDefaultRenderer();
+        orderRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
         //for table sa purchase history
-        JTableHeader header3 = purcharseHistoryTable.getTableHeader();
-        header3.setForeground(Color.blue);
-        header3.setFont(font);
+        JTableHeader purchaseHistoryHeader = purchaseHistoryTable.getTableHeader();
+        purchaseHistoryHeader.setForeground(Color.blue);
+        purchaseHistoryHeader.setFont(font);
+        DefaultTableCellRenderer purchaseHistoryRenderer = (DefaultTableCellRenderer) purchaseHistoryHeader.getDefaultRenderer();
+        purchaseHistoryRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
         //for out of stock table
-        JTableHeader header4 = outOfStockTable.getTableHeader();
-        header4.setForeground(Color.red);
-        header4.setFont(font);
+        JTableHeader stockHeader = outOfStockTable.getTableHeader();
+        stockHeader.setForeground(Color.red);
+        stockHeader.setFont(font);
+        DefaultTableCellRenderer stockRenderer = (DefaultTableCellRenderer) stockHeader.getDefaultRenderer();
+        stockRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        //for employee salary table
+        JTableHeader employeeHeader = employeeHistoryTable.getTableHeader();
+        employeeHeader.setForeground(Color.blue);
+        employeeHeader.setFont(font);
+        DefaultTableCellRenderer employeeSalaryRenderer = (DefaultTableCellRenderer) employeeHeader.getDefaultRenderer();
+        employeeSalaryRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        //for other expenses table
+        JTableHeader otherExpensesHeader = otherExpensesTable.getTableHeader();
+        otherExpensesHeader.setForeground(Color.blue);
+        otherExpensesHeader.setFont(font);
+        DefaultTableCellRenderer otherExpensesRenderer = (DefaultTableCellRenderer) otherExpensesHeader.getDefaultRenderer();
+        otherExpensesRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        //for restock medicine expenses table
+        JTableHeader restockExpensesHeader = restockExpensesTbl.getTableHeader();
+        restockExpensesHeader.setForeground(Color.blue);
+        restockExpensesHeader.setFont(new Font("Cambria", Font.BOLD, 15));
+        DefaultTableCellRenderer restockExpensesRenderer = (DefaultTableCellRenderer) restockExpensesHeader.getDefaultRenderer();
+        restockExpensesRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
     }
 
@@ -272,8 +309,9 @@ public class pharmacy extends javax.swing.JFrame {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
 
-        //display first 7 rows of table in the chart, in descending
-        int rowCount = Math.min(model.getRowCount(), 7);
+        //display first 6 rows of table in the chart, in descending
+        //6 days only because 1 day is rest day
+        int rowCount = Math.min(model.getRowCount(), 6);
         dataset.clear();
         for (int row = rowCount - 1; row >= 0; row--) {
             String day = model.getValueAt(row, 1).toString();
@@ -281,7 +319,7 @@ public class pharmacy extends javax.swing.JFrame {
 
             dataset.addValue(income, "Income", day);
         }
-        JFreeChart chart = ChartFactory.createLineChart("", "Last 7 Days", "Income", dataset, PlotOrientation.VERTICAL, false, true, false);
+        JFreeChart chart = ChartFactory.createLineChart("", "Last 6 Days", "Income", dataset, PlotOrientation.VERTICAL, false, true, false);
         chart.setBackgroundPaint(new Color(240, 240, 240));
 
         CategoryPlot plot = chart.getCategoryPlot();
@@ -363,7 +401,7 @@ public class pharmacy extends javax.swing.JFrame {
                 String startOfWeek = today.getMonth().toString() + " " + daysAWeek[0][0] + ", " + today.getYear();
                 String endOfWeek = today.getMonth().toString() + " " + daysAWeek[0][1] + ", " + today.getYear();
 
-                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE STR_TO_DATE(date, '%M %e, %Y') >= STR_TO_DATE(?, '%M %e, %Y') AND STR_TO_DATE(date, '%M %e, %Y') <= STR_TO_DATE(?, '%M %e, %Y');");
                 pst.setString(1, startOfWeek);
                 pst.setString(2, endOfWeek);
                 rs = pst.executeQuery();
@@ -392,7 +430,7 @@ public class pharmacy extends javax.swing.JFrame {
                 String startOfWeek = today.getMonth().toString() + " " + daysAWeek[1][0] + ", " + today.getYear();
                 String endOfWeek = today.getMonth().toString() + " " + daysAWeek[1][1] + ", " + today.getYear();
 
-                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE STR_TO_DATE(date, '%M %e, %Y') >= STR_TO_DATE(?, '%M %e, %Y') AND STR_TO_DATE(date, '%M %e, %Y') <= STR_TO_DATE(?, '%M %e, %Y');");
                 pst.setString(1, startOfWeek);
                 pst.setString(2, endOfWeek);
                 rs = pst.executeQuery();
@@ -421,7 +459,7 @@ public class pharmacy extends javax.swing.JFrame {
                 String startOfWeek = today.getMonth().toString() + " " + daysAWeek[2][0] + ", " + today.getYear();
                 String endOfWeek = today.getMonth().toString() + " " + daysAWeek[2][1] + ", " + today.getYear();
 
-                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE STR_TO_DATE(date, '%M %e, %Y') >= STR_TO_DATE(?, '%M %e, %Y') AND STR_TO_DATE(date, '%M %e, %Y') <= STR_TO_DATE(?, '%M %e, %Y');");
                 pst.setString(1, startOfWeek);
                 pst.setString(2, endOfWeek);
                 rs = pst.executeQuery();
@@ -450,7 +488,7 @@ public class pharmacy extends javax.swing.JFrame {
                 String startOfWeek = today.getMonth().toString() + " " + daysAWeek[3][0] + ", " + today.getYear();
                 String endOfWeek = today.getMonth().toString() + " " + daysAWeek[3][1] + ", " + today.getYear();
 
-                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE STR_TO_DATE(date, '%M %e, %Y') >= STR_TO_DATE(?, '%M %e, %Y') AND STR_TO_DATE(date, '%M %e, %Y') <= STR_TO_DATE(?, '%M %e, %Y');");
                 pst.setString(1, startOfWeek);
                 pst.setString(2, endOfWeek);
                 rs = pst.executeQuery();
@@ -479,7 +517,7 @@ public class pharmacy extends javax.swing.JFrame {
                 String startOfWeek = today.getMonth().toString() + " " + daysAWeek[4][0] + ", " + today.getYear();
                 String endOfWeek = today.getMonth().toString() + " " + daysAWeek[4][1] + ", " + today.getYear();
 
-                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE date >= ? AND date <= ?");
+                pst = con.prepareStatement("SELECT SUM(total_sale) FROM daily_sales WHERE STR_TO_DATE(date, '%M %e, %Y') >= STR_TO_DATE(?, '%M %e, %Y') AND STR_TO_DATE(date, '%M %e, %Y') <= STR_TO_DATE(?, '%M %e, %Y');");
                 pst.setString(1, startOfWeek);
                 pst.setString(2, endOfWeek);
                 rs = pst.executeQuery();
@@ -797,6 +835,7 @@ public class pharmacy extends javax.swing.JFrame {
         }
 
     }
+
     //to display total in order table
     private void setTotal() {
         DefaultTableModel df = (DefaultTableModel) orderTable.getModel();
@@ -808,6 +847,7 @@ public class pharmacy extends javax.swing.JFrame {
         }
         totalTxt.setText(String.valueOf(total));
     }
+
     //to remove the medicine in order table if the same medicine is picked
     private void removeExistingMeds() {
         int selectrow = medsTable.getSelectedRow();
@@ -901,7 +941,7 @@ public class pharmacy extends javax.swing.JFrame {
     //to populate the purchase history on dashboard tab
     private void purchaseHistory() {
         //need to clear the contents of the purchase table first because it will be populated with new data every time this function is called.
-        DefaultTableModel model = (DefaultTableModel) purcharseHistoryTable.getModel();
+        DefaultTableModel model = (DefaultTableModel) purchaseHistoryTable.getModel();
         model.setRowCount(0);
         try {
             LocalDateTime currentDateTime = LocalDateTime.now();
@@ -991,7 +1031,7 @@ public class pharmacy extends javax.swing.JFrame {
                 change.setText(String.valueOf(roundedChange));
             }
         } catch (NumberFormatException ex) {
-            
+
         }
     }
 
@@ -1000,6 +1040,9 @@ public class pharmacy extends javax.swing.JFrame {
         buy.setEnabled(false);
         updateBtn.setEnabled(false);
         addNewMedBtn.setEnabled(false);
+        employeeProceed.setEnabled(false);
+        otherExpensesProceedBtn.setEnabled(false);
+        restockMedsProcessBtn.setEnabled(false);
     }
 
     //design of the dashboard options when clicked or hover
@@ -1021,7 +1064,7 @@ public class pharmacy extends javax.swing.JFrame {
     private void dashboardSalesCount() {
         try {
             //The order count was taken from the purchase history, indicating the number of rows there.
-            DefaultTableModel purchase = (DefaultTableModel) purcharseHistoryTable.getModel();
+            DefaultTableModel purchase = (DefaultTableModel) purchaseHistoryTable.getModel();
             int salesCount = purchase.getRowCount();
             dashboardOrderLbl.setText(String.valueOf(salesCount));
 
@@ -1047,6 +1090,63 @@ public class pharmacy extends javax.swing.JFrame {
 
     }
 
+    //to get the username of employee and display to salary expenses
+    private void combobox() {
+        try {
+            pst = con.prepareStatement("SELECT username FROM login WHERE position = 'Employee'");
+            rs = pst.executeQuery();
+            while (rs.next()) {
+                employeeCombo.addItem(rs.getString("username"));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (NullPointerException e) {
+            JOptionPane.showMessageDialog(this, "No Database Found!");
+        }
+
+    }
+
+    //to disable the expenses button when user is not the owner
+    private void disableExpensesBtn() {
+        try {
+            String position = "";
+            pst = con.prepareStatement("SELECT login.position FROM login JOIN login_history ON login.ID = login_history.userID WHERE login_history.ID = (SELECT MAX(ID) FROM login_history);");
+            rs = pst.executeQuery();
+
+            if (rs.first()) {
+                position = rs.getString(1);
+            }
+            if (!position.equals("Owner")) {
+                //for salary
+                employeeCombo.setEnabled(false);
+                employeeSalaryTxt.setEditable(false);
+                employeeProceed.setEnabled(false);
+
+                //for other expenses
+                otherExpensesAmountTxt.setEditable(false);
+                otherExpensesNameTxt.setEditable(false);
+                otherExpensesProceedBtn.setEnabled(false);
+
+                //for restock expenses
+                restockMedsAmountTxt.setEditable(false);
+                restockMedsNameTxt.setEditable(false);
+                restockMedsQuanTxt.setEditable(false);
+                restockMedsProcessBtn.setEnabled(false);
+                restockExpensesTbl.setEnabled(false);
+            }
+
+        } catch (SQLException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
+    //to show the data in tables in expenses
+    private void callExpensesTables() {
+        employeeSalaryHistory();
+        otherExpensesTable();
+        restockExpensesTable();
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -1068,7 +1168,7 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel8 = new javax.swing.JLabel();
         logout = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
-        jTabbedPane1 = new javax.swing.JTabbedPane();
+        tabOptions = new javax.swing.JTabbedPane();
         homeTab = new javax.swing.JPanel();
         dashboardOrderPanel = new com.k33ptoo.components.KGradientPanel();
         jLabel1 = new javax.swing.JLabel();
@@ -1084,7 +1184,7 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardIncomeLbl = new javax.swing.JLabel();
         calendarPanel1 = new com.github.lgooddatepicker.components.CalendarPanel();
         jScrollPane5 = new javax.swing.JScrollPane();
-        purcharseHistoryTable = new javax.swing.JTable();
+        purchaseHistoryTable = new javax.swing.JTable();
         jLabel2 = new javax.swing.JLabel();
         jScrollPane6 = new javax.swing.JScrollPane();
         outOfStockTable = new javax.swing.JTable();
@@ -1128,7 +1228,45 @@ public class pharmacy extends javax.swing.JFrame {
         nextMonth = new javax.swing.JLabel();
         barChartPanelMonthly = new javax.swing.JPanel();
         expensesTab = new javax.swing.JPanel();
+        jTabbedPane1 = new javax.swing.JTabbedPane();
+        jPanel3 = new javax.swing.JPanel();
+        noteLbl2 = new javax.swing.JLabel();
+        kGradientPanel4 = new com.k33ptoo.components.KGradientPanel();
+        jLabel41 = new javax.swing.JLabel();
+        restockMedsAmountTxt = new javax.swing.JTextField();
+        jLabel42 = new javax.swing.JLabel();
+        jLabel43 = new javax.swing.JLabel();
+        restockMedsProcessBtn = new javax.swing.JButton();
+        restockMedsNameTxt = new javax.swing.JTextField();
+        restockMedsQuanTxt = new javax.swing.JTextField();
+        jLabel45 = new javax.swing.JLabel();
+        jScrollPane10 = new javax.swing.JScrollPane();
+        restockExpensesTbl = new javax.swing.JTable();
+        jLabel44 = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
+        jScrollPane8 = new javax.swing.JScrollPane();
+        employeeHistoryTable = new javax.swing.JTable();
+        kGradientPanel1 = new com.k33ptoo.components.KGradientPanel();
+        jLabel13 = new javax.swing.JLabel();
+        employeeCombo = new javax.swing.JComboBox<>();
+        employeeSalaryTxt = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
+        jLabel14 = new javax.swing.JLabel();
+        employeeProceed = new javax.swing.JButton();
+        jLabel10 = new javax.swing.JLabel();
+        noteLbl = new javax.swing.JLabel();
+        jPanel4 = new javax.swing.JPanel();
+        jScrollPane9 = new javax.swing.JScrollPane();
+        otherExpensesTable = new javax.swing.JTable();
+        jLabel18 = new javax.swing.JLabel();
+        kGradientPanel3 = new com.k33ptoo.components.KGradientPanel();
+        jLabel19 = new javax.swing.JLabel();
+        otherExpensesAmountTxt = new javax.swing.JTextField();
+        jLabel39 = new javax.swing.JLabel();
+        jLabel40 = new javax.swing.JLabel();
+        otherExpensesProceedBtn = new javax.swing.JButton();
+        otherExpensesNameTxt = new javax.swing.JTextField();
+        noteLbl1 = new javax.swing.JLabel();
         inventoryTab = new javax.swing.JPanel();
         kGradientPanel5 = new com.k33ptoo.components.KGradientPanel();
         jLabel6 = new javax.swing.JLabel();
@@ -1330,8 +1468,8 @@ public class pharmacy extends javax.swing.JFrame {
         });
 
         supplierLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        supplierLbl.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/supplier.png"))); // NOI18N
-        supplierLbl.setText("  Supplier");
+        supplierLbl.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/income.png"))); // NOI18N
+        supplierLbl.setText("  Income");
         supplierLbl.setFont(new java.awt.Font("Segoe UI", 3, 18)); // NOI18N
         supplierLbl.setForeground(new java.awt.Color(255, 255, 255));
 
@@ -1391,7 +1529,7 @@ public class pharmacy extends javax.swing.JFrame {
                                     .addComponent(supplier, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                             .addGap(11, 11, 11))
                         .addComponent(jLabel5)))
-                .addContainerGap(13, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         kGradientPanel2Layout.setVerticalGroup(
             kGradientPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1421,9 +1559,7 @@ public class pharmacy extends javax.swing.JFrame {
         jPanel1.setOpaque(false);
         jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        dashboardOrderPanel.setkEndColor(new java.awt.Color(73, 254, 73));
         dashboardOrderPanel.setkGradientFocus(300);
-        dashboardOrderPanel.setkStartColor(new java.awt.Color(95, 95, 249));
         dashboardOrderPanel.setPreferredSize(new java.awt.Dimension(230, 100));
         dashboardOrderPanel.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -1473,9 +1609,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        dashboardSalesPanel.setkEndColor(new java.awt.Color(73, 254, 73));
         dashboardSalesPanel.setkGradientFocus(300);
-        dashboardSalesPanel.setkStartColor(new java.awt.Color(95, 95, 249));
         dashboardSalesPanel.setPreferredSize(new java.awt.Dimension(230, 100));
         dashboardSalesPanel.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -1532,9 +1666,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        dashboardIncomePanel.setkEndColor(new java.awt.Color(73, 254, 73));
         dashboardIncomePanel.setkGradientFocus(300);
-        dashboardIncomePanel.setkStartColor(new java.awt.Color(95, 95, 249));
         dashboardIncomePanel.setPreferredSize(new java.awt.Dimension(230, 100));
         dashboardIncomePanel.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -1546,7 +1678,7 @@ public class pharmacy extends javax.swing.JFrame {
         });
 
         jLabel31.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel31.setText("Income this Month");
+        jLabel31.setText("Sales this Month");
         jLabel31.setFont(new java.awt.Font("Segoe UI", 2, 14)); // NOI18N
 
         jLabel36.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/dashboard_income.png"))); // NOI18N
@@ -1594,7 +1726,7 @@ public class pharmacy extends javax.swing.JFrame {
         calendarPanel1.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
         calendarPanel1.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
 
-        purcharseHistoryTable.setModel(new javax.swing.table.DefaultTableModel(
+        purchaseHistoryTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
 
             },
@@ -1610,15 +1742,15 @@ public class pharmacy extends javax.swing.JFrame {
                 return canEdit [columnIndex];
             }
         });
-        purcharseHistoryTable.getTableHeader().setReorderingAllowed(false);
-        jScrollPane5.setViewportView(purcharseHistoryTable);
-        if (purcharseHistoryTable.getColumnModel().getColumnCount() > 0) {
-            purcharseHistoryTable.getColumnModel().getColumn(0).setMinWidth(160);
-            purcharseHistoryTable.getColumnModel().getColumn(0).setPreferredWidth(160);
-            purcharseHistoryTable.getColumnModel().getColumn(1).setResizable(false);
-            purcharseHistoryTable.getColumnModel().getColumn(1).setPreferredWidth(30);
-            purcharseHistoryTable.getColumnModel().getColumn(2).setResizable(false);
-            purcharseHistoryTable.getColumnModel().getColumn(3).setResizable(false);
+        purchaseHistoryTable.getTableHeader().setReorderingAllowed(false);
+        jScrollPane5.setViewportView(purchaseHistoryTable);
+        if (purchaseHistoryTable.getColumnModel().getColumnCount() > 0) {
+            purchaseHistoryTable.getColumnModel().getColumn(0).setMinWidth(160);
+            purchaseHistoryTable.getColumnModel().getColumn(0).setPreferredWidth(160);
+            purchaseHistoryTable.getColumnModel().getColumn(1).setResizable(false);
+            purchaseHistoryTable.getColumnModel().getColumn(1).setPreferredWidth(30);
+            purchaseHistoryTable.getColumnModel().getColumn(2).setResizable(false);
+            purchaseHistoryTable.getColumnModel().getColumn(3).setResizable(false);
         }
 
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -1702,7 +1834,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap(83, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab1", homeTab);
+        tabOptions.addTab("tab1", homeTab);
 
         buy.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/buy.png"))); // NOI18N
         buy.setText(" Buy (Enter)");
@@ -1942,7 +2074,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap(89, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab2", posTab);
+        tabOptions.addTab("tab2", posTab);
 
         dailyWeeklyMonthlyTab.setOpaque(true);
         dailyWeeklyMonthlyTab.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -2266,34 +2398,486 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGap(0, 61, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab3", salesTab);
+        tabOptions.addTab("tab3", salesTab);
 
-        jLabel4.setText("4");
-        jLabel4.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jPanel3.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        noteLbl2.setForeground(new java.awt.Color(255, 51, 51));
+        noteLbl2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        noteLbl2.setText("note : you need to be the owner to access this section");
+        jPanel3.add(noteLbl2, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 80, 320, -1));
+
+        kGradientPanel4.setkBorderRadius(30);
+
+        jLabel41.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel41.setText("Restock Medicine");
+        jLabel41.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+
+        restockMedsAmountTxt.setEditable(false);
+        restockMedsAmountTxt.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        restockMedsAmountTxt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        restockMedsAmountTxt.setForeground(new java.awt.Color(255, 0, 0));
+        restockMedsAmountTxt.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                restockMedsAmountTxtKeyPressed(evt);
+            }
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                restockMedsAmountTxtKeyReleased(evt);
+            }
+        });
+
+        jLabel42.setText("Name:");
+        jLabel42.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        jLabel43.setText("Amount:");
+        jLabel43.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        restockMedsProcessBtn.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/proceed.png"))); // NOI18N
+        restockMedsProcessBtn.setText("Proceed");
+        restockMedsProcessBtn.setBackground(new java.awt.Color(255, 255, 255));
+        restockMedsProcessBtn.setFont(new java.awt.Font("Segoe UI", 3, 24)); // NOI18N
+        restockMedsProcessBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                restockMedsProcessBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                restockMedsProcessBtnMouseExited(evt);
+            }
+        });
+        restockMedsProcessBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                restockMedsProcessBtnActionPerformed(evt);
+            }
+        });
+
+        restockMedsNameTxt.setEditable(false);
+        restockMedsNameTxt.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        restockMedsNameTxt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        restockMedsNameTxt.setForeground(new java.awt.Color(255, 0, 0));
+
+        restockMedsQuanTxt.setEditable(false);
+        restockMedsQuanTxt.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        restockMedsQuanTxt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        restockMedsQuanTxt.setForeground(new java.awt.Color(255, 0, 0));
+
+        jLabel45.setText("Quantity:");
+        jLabel45.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        javax.swing.GroupLayout kGradientPanel4Layout = new javax.swing.GroupLayout(kGradientPanel4);
+        kGradientPanel4.setLayout(kGradientPanel4Layout);
+        kGradientPanel4Layout.setHorizontalGroup(
+            kGradientPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(kGradientPanel4Layout.createSequentialGroup()
+                .addGroup(kGradientPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(kGradientPanel4Layout.createSequentialGroup()
+                        .addGap(39, 39, 39)
+                        .addGroup(kGradientPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel42, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel43, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(restockMedsAmountTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(restockMedsNameTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(restockMedsQuanTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel45, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(kGradientPanel4Layout.createSequentialGroup()
+                        .addGap(77, 77, 77)
+                        .addComponent(restockMedsProcessBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 162, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addComponent(jLabel41, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+        kGradientPanel4Layout.setVerticalGroup(
+            kGradientPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(kGradientPanel4Layout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addComponent(jLabel41)
+                .addGap(25, 25, 25)
+                .addComponent(jLabel42, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(restockMedsNameTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jLabel45, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(restockMedsQuanTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 23, Short.MAX_VALUE)
+                .addComponent(jLabel43, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(restockMedsAmountTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(36, 36, 36)
+                .addComponent(restockMedsProcessBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(37, 37, 37))
+        );
+
+        jPanel3.add(kGradientPanel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 100, 320, 470));
+
+        restockExpensesTbl.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Medicine", "Quantity", "Amount", "Date Paid", "Status"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        restockExpensesTbl.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                restockExpensesTblMouseClicked(evt);
+            }
+        });
+        jScrollPane10.setViewportView(restockExpensesTbl);
+        if (restockExpensesTbl.getColumnModel().getColumnCount() > 0) {
+            restockExpensesTbl.getColumnModel().getColumn(0).setResizable(false);
+            restockExpensesTbl.getColumnModel().getColumn(0).setPreferredWidth(170);
+            restockExpensesTbl.getColumnModel().getColumn(1).setResizable(false);
+            restockExpensesTbl.getColumnModel().getColumn(2).setResizable(false);
+            restockExpensesTbl.getColumnModel().getColumn(3).setResizable(false);
+            restockExpensesTbl.getColumnModel().getColumn(3).setPreferredWidth(130);
+            restockExpensesTbl.getColumnModel().getColumn(4).setResizable(false);
+        }
+
+        jPanel3.add(jScrollPane10, new org.netbeans.lib.awtextra.AbsoluteConstraints(382, 90, 490, 480));
+
+        jLabel44.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel44.setText("Click to pay");
+        jLabel44.setFont(new java.awt.Font("Segoe UI", 3, 36)); // NOI18N
+        jPanel3.add(jLabel44, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 30, 450, -1));
+
+        jTabbedPane1.addTab("Restock Medicine   ", new javax.swing.ImageIcon(getClass().getResource("/icons/restock_medicine.png")), jPanel3); // NOI18N
+
+        employeeHistoryTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Employee Name", "Salary", "Date", "Name of Payer"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane8.setViewportView(employeeHistoryTable);
+        if (employeeHistoryTable.getColumnModel().getColumnCount() > 0) {
+            employeeHistoryTable.getColumnModel().getColumn(0).setResizable(false);
+            employeeHistoryTable.getColumnModel().getColumn(0).setPreferredWidth(170);
+            employeeHistoryTable.getColumnModel().getColumn(1).setResizable(false);
+            employeeHistoryTable.getColumnModel().getColumn(2).setResizable(false);
+            employeeHistoryTable.getColumnModel().getColumn(2).setPreferredWidth(130);
+            employeeHistoryTable.getColumnModel().getColumn(3).setResizable(false);
+            employeeHistoryTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+            employeeHistoryTable.getColumnModel().getColumn(3).setHeaderValue("Name of Payer");
+        }
+
+        kGradientPanel1.setkBorderRadius(30);
+
+        jLabel13.setText("Employee Salary");
+        jLabel13.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+
+        employeeSalaryTxt.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        employeeSalaryTxt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        employeeSalaryTxt.setForeground(new java.awt.Color(255, 0, 0));
+        employeeSalaryTxt.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                employeeSalaryTxtKeyPressed(evt);
+            }
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                employeeSalaryTxtKeyReleased(evt);
+            }
+        });
+
+        jLabel4.setText("Name:");
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        jLabel14.setText("Amount:");
+        jLabel14.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        employeeProceed.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/proceed.png"))); // NOI18N
+        employeeProceed.setText("Proceed");
+        employeeProceed.setBackground(new java.awt.Color(255, 255, 255));
+        employeeProceed.setFont(new java.awt.Font("Segoe UI", 3, 24)); // NOI18N
+        employeeProceed.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                employeeProceedMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                employeeProceedMouseExited(evt);
+            }
+        });
+        employeeProceed.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                employeeProceedActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout kGradientPanel1Layout = new javax.swing.GroupLayout(kGradientPanel1);
+        kGradientPanel1.setLayout(kGradientPanel1Layout);
+        kGradientPanel1Layout.setHorizontalGroup(
+            kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(kGradientPanel1Layout.createSequentialGroup()
+                .addGroup(kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(kGradientPanel1Layout.createSequentialGroup()
+                        .addGap(71, 71, 71)
+                        .addComponent(jLabel13))
+                    .addGroup(kGradientPanel1Layout.createSequentialGroup()
+                        .addGap(39, 39, 39)
+                        .addGroup(kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(employeeSalaryTxt)
+                            .addComponent(employeeCombo, 0, 242, Short.MAX_VALUE)))
+                    .addGroup(kGradientPanel1Layout.createSequentialGroup()
+                        .addGap(77, 77, 77)
+                        .addComponent(employeeProceed, javax.swing.GroupLayout.PREFERRED_SIZE, 162, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(41, Short.MAX_VALUE))
+        );
+        kGradientPanel1Layout.setVerticalGroup(
+            kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(kGradientPanel1Layout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addComponent(jLabel13)
+                .addGap(25, 25, 25)
+                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(employeeCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(employeeSalaryTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 45, Short.MAX_VALUE)
+                .addComponent(employeeProceed, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(37, 37, 37))
+        );
+
+        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel10.setText("Salary History");
+        jLabel10.setFont(new java.awt.Font("Segoe UI", 3, 36)); // NOI18N
+
+        noteLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        noteLbl.setText("note : you need to be the owner to access this section");
+        noteLbl.setForeground(new java.awt.Color(255, 51, 51));
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addGap(36, 36, 36)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(kGradientPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(noteLbl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(26, 26, 26)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jScrollPane8, javax.swing.GroupLayout.DEFAULT_SIZE, 479, Short.MAX_VALUE)
+                        .addGap(13, 13, 13))
+                    .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel10)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane8, javax.swing.GroupLayout.PREFERRED_SIZE, 494, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addComponent(noteLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(kGradientPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(41, Short.MAX_VALUE))
+        );
+
+        jTabbedPane1.addTab("Employee Expenses   ", new javax.swing.ImageIcon(getClass().getResource("/icons/employee_expenses.png")), jPanel2); // NOI18N
+
+        otherExpensesTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Itemized Expenses", "Amount", "Date"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane9.setViewportView(otherExpensesTable);
+        if (otherExpensesTable.getColumnModel().getColumnCount() > 0) {
+            otherExpensesTable.getColumnModel().getColumn(0).setResizable(false);
+            otherExpensesTable.getColumnModel().getColumn(0).setPreferredWidth(170);
+            otherExpensesTable.getColumnModel().getColumn(1).setResizable(false);
+            otherExpensesTable.getColumnModel().getColumn(2).setResizable(false);
+            otherExpensesTable.getColumnModel().getColumn(2).setPreferredWidth(130);
+        }
+
+        jLabel18.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel18.setText("Expenses");
+        jLabel18.setFont(new java.awt.Font("Segoe UI", 3, 36)); // NOI18N
+
+        kGradientPanel3.setkBorderRadius(30);
+
+        jLabel19.setText("Other Expenses");
+        jLabel19.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+
+        otherExpensesAmountTxt.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        otherExpensesAmountTxt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        otherExpensesAmountTxt.setForeground(new java.awt.Color(255, 0, 0));
+        otherExpensesAmountTxt.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                otherExpensesAmountTxtKeyPressed(evt);
+            }
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                otherExpensesAmountTxtKeyReleased(evt);
+            }
+        });
+
+        jLabel39.setText("Name:");
+        jLabel39.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        jLabel40.setText("Amount:");
+        jLabel40.setFont(new java.awt.Font("Segoe UI", 2, 18)); // NOI18N
+
+        otherExpensesProceedBtn.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/proceed.png"))); // NOI18N
+        otherExpensesProceedBtn.setText("Proceed");
+        otherExpensesProceedBtn.setBackground(new java.awt.Color(255, 255, 255));
+        otherExpensesProceedBtn.setFont(new java.awt.Font("Segoe UI", 3, 24)); // NOI18N
+        otherExpensesProceedBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                otherExpensesProceedBtnMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                otherExpensesProceedBtnMouseExited(evt);
+            }
+        });
+        otherExpensesProceedBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                otherExpensesProceedBtnActionPerformed(evt);
+            }
+        });
+
+        otherExpensesNameTxt.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        otherExpensesNameTxt.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        otherExpensesNameTxt.setForeground(new java.awt.Color(255, 0, 0));
+        otherExpensesNameTxt.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                otherExpensesNameTxtKeyReleased(evt);
+            }
+        });
+
+        javax.swing.GroupLayout kGradientPanel3Layout = new javax.swing.GroupLayout(kGradientPanel3);
+        kGradientPanel3.setLayout(kGradientPanel3Layout);
+        kGradientPanel3Layout.setHorizontalGroup(
+            kGradientPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(kGradientPanel3Layout.createSequentialGroup()
+                .addGroup(kGradientPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(kGradientPanel3Layout.createSequentialGroup()
+                        .addGap(71, 71, 71)
+                        .addComponent(jLabel19))
+                    .addGroup(kGradientPanel3Layout.createSequentialGroup()
+                        .addGap(39, 39, 39)
+                        .addGroup(kGradientPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel39, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel40, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(otherExpensesAmountTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(otherExpensesNameTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(kGradientPanel3Layout.createSequentialGroup()
+                        .addGap(77, 77, 77)
+                        .addComponent(otherExpensesProceedBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 162, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(41, Short.MAX_VALUE))
+        );
+        kGradientPanel3Layout.setVerticalGroup(
+            kGradientPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(kGradientPanel3Layout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addComponent(jLabel19)
+                .addGap(25, 25, 25)
+                .addComponent(jLabel39, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(otherExpensesNameTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel40, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(otherExpensesAmountTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 38, Short.MAX_VALUE)
+                .addComponent(otherExpensesProceedBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(37, 37, 37))
+        );
+
+        noteLbl1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        noteLbl1.setText("note : you need to be the owner to access this section");
+        noteLbl1.setForeground(new java.awt.Color(255, 51, 51));
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGap(36, 36, 36)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(kGradientPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(noteLbl1, javax.swing.GroupLayout.DEFAULT_SIZE, 322, Short.MAX_VALUE))
+                .addGap(26, 26, 26)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(jScrollPane9, javax.swing.GroupLayout.DEFAULT_SIZE, 479, Short.MAX_VALUE)
+                        .addGap(13, 13, 13))
+                    .addComponent(jLabel18, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel18)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane9, javax.swing.GroupLayout.PREFERRED_SIZE, 494, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addGap(18, 18, 18)
+                        .addComponent(noteLbl1, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(kGradientPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(41, Short.MAX_VALUE))
+        );
+
+        jTabbedPane1.addTab("Other   ", new javax.swing.ImageIcon(getClass().getResource("/icons/other_expenses.png")), jPanel4); // NOI18N
 
         javax.swing.GroupLayout expensesTabLayout = new javax.swing.GroupLayout(expensesTab);
         expensesTab.setLayout(expensesTabLayout);
         expensesTabLayout.setHorizontalGroup(
             expensesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(expensesTabLayout.createSequentialGroup()
-                .addContainerGap(553, Short.MAX_VALUE)
-                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(323, 323, 323))
+                .addGap(18, 18, 18)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 891, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(106, Short.MAX_VALUE))
         );
         expensesTabLayout.setVerticalGroup(
             expensesTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(expensesTabLayout.createSequentialGroup()
-                .addGap(196, 196, 196)
-                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(413, Short.MAX_VALUE))
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 644, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 58, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab4", expensesTab);
+        tabOptions.addTab("tab4", expensesTab);
 
         kGradientPanel5.setkBorderRadius(30);
-        kGradientPanel5.setkEndColor(new java.awt.Color(73, 254, 73));
-        kGradientPanel5.setkGradientFocus(300);
-        kGradientPanel5.setkStartColor(new java.awt.Color(95, 95, 249));
 
         jLabel6.setText("Name :");
         jLabel6.setFont(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
@@ -2366,12 +2950,14 @@ public class pharmacy extends javax.swing.JFrame {
             }
         });
 
+        jLabel24.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel24.setText("Update Stock/Price");
         jLabel24.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
 
         jLabel26.setText("Name :");
         jLabel26.setFont(new java.awt.Font("Times New Roman", 1, 20)); // NOI18N
 
+        jLabel25.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel25.setText("Add New Medicine");
         jLabel25.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
 
@@ -2470,41 +3056,36 @@ public class pharmacy extends javax.swing.JFrame {
             .addGroup(kGradientPanel5Layout.createSequentialGroup()
                 .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                        .addGap(0, 23, Short.MAX_VALUE)
+                        .addGap(0, 0, Short.MAX_VALUE)
                         .addComponent(jLabel30, javax.swing.GroupLayout.PREFERRED_SIZE, 290, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(1, 1, 1))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, kGradientPanel5Layout.createSequentialGroup()
-                        .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, kGradientPanel5Layout.createSequentialGroup()
-                                .addGap(15, 15, 15)
+                        .addGap(15, 15, 15)
+                        .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(kGradientPanel5Layout.createSequentialGroup()
                                 .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                                        .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                                                .addComponent(jLabel21)
-                                                .addGap(23, 23, 23))
-                                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel5Layout.createSequentialGroup()
-                                                .addComponent(jLabel20)
-                                                .addGap(18, 18, 18)))
-                                        .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                            .addComponent(currentStock)
-                                            .addComponent(currentPrice, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                    .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                                        .addComponent(jLabel6)
-                                        .addGap(83, 83, 83)
-                                        .addComponent(currentName, javax.swing.GroupLayout.PREFERRED_SIZE, 146, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel5Layout.createSequentialGroup()
-                                            .addComponent(jLabel22)
-                                            .addGap(54, 54, 54)
-                                            .addComponent(addStock, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                                            .addComponent(jLabel23)
-                                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                            .addComponent(updatePrice, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, kGradientPanel5Layout.createSequentialGroup()
-                                .addGap(78, 78, 78)
-                                .addComponent(jLabel24)))
+                                        .addComponent(jLabel21)
+                                        .addGap(23, 23, 23))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel5Layout.createSequentialGroup()
+                                        .addComponent(jLabel20)
+                                        .addGap(18, 18, 18)))
+                                .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(currentStock)
+                                    .addComponent(currentPrice, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addGroup(kGradientPanel5Layout.createSequentialGroup()
+                                .addComponent(jLabel6)
+                                .addGap(83, 83, 83)
+                                .addComponent(currentName, javax.swing.GroupLayout.PREFERRED_SIZE, 146, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel5Layout.createSequentialGroup()
+                                    .addComponent(jLabel22)
+                                    .addGap(54, 54, 54)
+                                    .addComponent(addStock, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGroup(kGradientPanel5Layout.createSequentialGroup()
+                                    .addComponent(jLabel23)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                    .addComponent(updatePrice, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE))))
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, kGradientPanel5Layout.createSequentialGroup()
                         .addContainerGap()
@@ -2535,21 +3116,21 @@ public class pharmacy extends javax.swing.JFrame {
                         .addGroup(kGradientPanel5Layout.createSequentialGroup()
                             .addComponent(jLabel26)
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel25)
-                                .addComponent(newName)))))
+                            .addComponent(newName))))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addComponent(jLabel25, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jLabel24, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         kGradientPanel5Layout.setVerticalGroup(
             kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                .addGap(25, 25, 25)
-                .addComponent(jLabel24)
                 .addGroup(kGradientPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(kGradientPanel5Layout.createSequentialGroup()
-                        .addGap(28, 28, 28)
+                        .addGap(75, 75, 75)
                         .addComponent(jLabel6))
                     .addGroup(kGradientPanel5Layout.createSequentialGroup()
+                        .addGap(25, 25, 25)
+                        .addComponent(jLabel24)
                         .addGap(18, 18, 18)
                         .addComponent(currentName, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(5, 5, 5)
@@ -2658,7 +3239,7 @@ public class pharmacy extends javax.swing.JFrame {
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 481, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(30, 30, 30)
                 .addComponent(kGradientPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(130, Short.MAX_VALUE))
+                .addContainerGap(145, Short.MAX_VALUE))
         );
         inventoryTabLayout.setVerticalGroup(
             inventoryTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2677,7 +3258,7 @@ public class pharmacy extends javax.swing.JFrame {
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
         );
 
-        jTabbedPane1.addTab("tab5", inventoryTab);
+        tabOptions.addTab("tab5", inventoryTab);
 
         jLabel9.setText("6");
         jLabel9.setFont(new java.awt.Font("Tahoma", 3, 36)); // NOI18N
@@ -2699,9 +3280,9 @@ public class pharmacy extends javax.swing.JFrame {
                 .addContainerGap(451, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab6", supplierTab);
+        tabOptions.addTab("tab6", supplierTab);
 
-        jPanel1.add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(-30, -32, 1020, 730));
+        jPanel1.add(tabOptions, new org.netbeans.lib.awtextra.AbsoluteConstraints(-30, -32, 1020, 730));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -2738,7 +3319,7 @@ public class pharmacy extends javax.swing.JFrame {
         inventory.setBackground(defaultColor);
         supplier.setBackground(defaultColor);
 
-        jTabbedPane1.setSelectedIndex(0);
+        tabOptions.setSelectedIndex(0);
         todaySalesToDailyDB();
         dailySalesToWeeklyDB();
         weeklySalesToMonthlyDB();
@@ -2768,7 +3349,7 @@ public class pharmacy extends javax.swing.JFrame {
         inventory.setBackground(defaultColor);
         supplier.setBackground(defaultColor);
 
-        jTabbedPane1.setSelectedIndex(1);
+        tabOptions.setSelectedIndex(1);
     }//GEN-LAST:event_posMouseClicked
 
     private void posMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_posMouseEntered
@@ -2794,7 +3375,7 @@ public class pharmacy extends javax.swing.JFrame {
         inventory.setBackground(defaultColor);
         supplier.setBackground(defaultColor);
 
-        jTabbedPane1.setSelectedIndex(2);
+        tabOptions.setSelectedIndex(2);
 
         //table needs to be set to 0 so that only the content from the database will be displayed. it is accumulating additional data when not reset
         DefaultTableModel model = (DefaultTableModel) dailySalesTable.getModel();
@@ -2830,7 +3411,7 @@ public class pharmacy extends javax.swing.JFrame {
         inventory.setBackground(defaultColor);
         supplier.setBackground(defaultColor);
 
-        jTabbedPane1.setSelectedIndex(3);
+        tabOptions.setSelectedIndex(3);
     }//GEN-LAST:event_expensesMouseClicked
 
     private void expensesMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_expensesMouseEntered
@@ -2858,7 +3439,7 @@ public class pharmacy extends javax.swing.JFrame {
         inventory.setBackground(clickedColor);
         supplier.setBackground(defaultColor);
 
-        jTabbedPane1.setSelectedIndex(4);
+        tabOptions.setSelectedIndex(4);
     }//GEN-LAST:event_inventoryMouseClicked
 
     private void inventoryMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_inventoryMouseEntered
@@ -2973,6 +3554,7 @@ public class pharmacy extends javax.swing.JFrame {
 
             addStock.setEditable(true);
             updatePrice.setEditable(true);
+            addStock.requestFocus();
         } else if (choice == JOptionPane.NO_OPTION) {
             int isSure = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this to database?");
             if (isSure == JOptionPane.YES_OPTION) {
@@ -3027,7 +3609,7 @@ public class pharmacy extends javax.swing.JFrame {
                 try {
                     //para makuha yung price sa table
                     int selectrow = medsTable1.getSelectedRow();
-                    int updatePrice;
+                    int priceUpdate;
 
                     String medsName = currentName.getText();
                     int updateStock;
@@ -3037,18 +3619,20 @@ public class pharmacy extends javax.swing.JFrame {
                         updateStock = 0;
                     } else {
                         updateStock = Integer.parseInt(addStock.getText());
+                        restockMedsExpenses(currentName.getText(), Integer.parseInt(addStock.getText()));
+                        restockExpensesTable();
                     }
 
                     //para naman pag price lang uupdate pero yung stock hindi
                     if (this.updatePrice.getText().isEmpty()) {
-                        updatePrice = Integer.parseInt(medsTable1.getValueAt(selectrow, 1).toString());
+                        priceUpdate = Integer.parseInt(medsTable1.getValueAt(selectrow, 1).toString());
                     } else {
-                        updatePrice = Integer.parseInt(this.updatePrice.getText());
+                        priceUpdate = Integer.parseInt(this.updatePrice.getText());
                     }
 
                     pst = con.prepareStatement("UPDATE medicine SET stock = (stock + ?), price = ? WHERE meds_name = ?");
                     pst.setInt(1, updateStock);
-                    pst.setInt(2, updatePrice);
+                    pst.setInt(2, priceUpdate);
                     pst.setString(3, medsName);
                     pst.executeUpdate();
 
@@ -3081,6 +3665,27 @@ public class pharmacy extends javax.swing.JFrame {
         }
     }
 
+    //to populate the restock medicine expenses table
+    private void restockMedsExpenses(String name, int quan) {
+        try {
+            String status = "Unpaid";
+            int defaultPrice = 0;
+
+            pst = con.prepareStatement("INSERT INTO restock_expenses_history(meds_name, quantity, price, date, status) VALUES(?,?,?,?,?)");
+            pst.setString(1, name);
+            pst.setInt(2, quan);
+            pst.setFloat(3, defaultPrice);
+            pst.setString(4, null);
+            pst.setString(5, status);
+            pst.executeUpdate();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (NumberFormatException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
     private void updateBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_updateBtnMouseEntered
         updateBtn.setBackground(Color.red);
         updateBtn.setForeground(Color.white);
@@ -3102,7 +3707,7 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_addNewMedBtnMouseExited
 
     private void addStockKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_addStockKeyReleased
-        if (addStock.getText().isEmpty() || currentName.getText().isEmpty()) {
+        if (addStock.getText().isEmpty() || currentName.getText().isEmpty() || addStock.getText().matches(".*[a-zA-Z].*")) {
             updateBtn.setEnabled(false);
         } else {
             updateBtn.setEnabled(true);
@@ -3171,7 +3776,7 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_addStockKeyTyped
 
     private void updatePriceKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_updatePriceKeyReleased
-        if (updatePrice.getText().isEmpty() || currentName.getText().isEmpty()) {
+        if (updatePrice.getText().isEmpty() || currentName.getText().isEmpty() || updatePrice.getText().matches(".*[a-zA-Z].*")) {
             updateBtn.setEnabled(false);
         } else {
             updateBtn.setEnabled(true);
@@ -3248,16 +3853,11 @@ public class pharmacy extends javax.swing.JFrame {
             buy.setEnabled(true);
         } catch (NumberFormatException e) {
         }
-        if (payment.getText().contains(" ")) {
-            buy.setEnabled(false);
-        }
 
-    }//GEN-LAST:event_paymentKeyReleased
-
-    private void paymentKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyTyped
         //checks if payment has character
-        if (payment.getText().matches(".*[a-zA-Z].*")) {
+        if (payment.getText().matches(".*[a-zA-Z].*") || payment.getText().contains(" ")) {
             discount.setEnabled(false);
+            buy.setEnabled(false);
         } else if (payment.getText().isEmpty()) {
             change.setText("");
             buy.setEnabled(false);
@@ -3265,6 +3865,9 @@ public class pharmacy extends javax.swing.JFrame {
             discount.setEnabled(true);
         }
 
+    }//GEN-LAST:event_paymentKeyReleased
+
+    private void paymentKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyTyped
         //key binding
         if (evt.getKeyChar() == 'd' || evt.getKeyChar() == 'D') {
             if (discount.isSelected()) {
@@ -3273,6 +3876,8 @@ public class pharmacy extends javax.swing.JFrame {
                 discount.setSelected(true);
             }
             evt.consume(); // Consume the event to prevent further processing
+        } else {
+            discount.setSelected(false);
         }
     }//GEN-LAST:event_paymentKeyTyped
 
@@ -3442,7 +4047,7 @@ public class pharmacy extends javax.swing.JFrame {
         inventory.setBackground(defaultColor);
         supplier.setBackground(clickedColor);
 
-        jTabbedPane1.setSelectedIndex(5);
+        tabOptions.setSelectedIndex(5);
     }//GEN-LAST:event_supplierMouseClicked
 
     private void supplierMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_supplierMouseEntered
@@ -3505,6 +4110,281 @@ public class pharmacy extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_newPriceKeyPressed
 
+    private void employeeProceedActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_employeeProceedActionPerformed
+        employeeSalary();
+    }//GEN-LAST:event_employeeProceedActionPerformed
+    //for employee salary
+    private void employeeSalary() {
+        try {
+            LocalDate today = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            String date = today.format(formatter);
+
+            String employee = employeeCombo.getSelectedItem().toString();
+            int salary = Integer.parseInt(employeeSalaryTxt.getText());
+
+            //get the last person who logged in
+            String payer = "";
+            pst = con.prepareStatement("SELECT username FROM login_history");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                payer = rs.getString(1);
+            }
+            int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+
+            if (response == JOptionPane.YES_OPTION) {
+                pst = con.prepareStatement("INSERT INTO employee_salary_history(employee_name, salary, date, payer_name) VALUES(?,?,?,?)");
+                pst.setString(1, employee);
+                pst.setInt(2, salary);
+                pst.setString(3, date);
+                pst.setString(4, payer);
+                pst.executeUpdate();
+
+                employeeSalaryTxt.setText("");
+                employeeProceed.setEnabled(false);
+                employeeSalaryHistory();
+            }
+
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        } catch (NumberFormatException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
+    private void employeeSalaryHistory() {
+        try {
+            DefaultTableModel model = (DefaultTableModel) employeeHistoryTable.getModel();
+            model.setRowCount(0);
+            pst = con.prepareStatement("SELECT employee_name, salary, date, payer_name FROM employee_salary_history ORDER BY ID DESC");
+            rs = pst.executeQuery();
+            while (rs.next()) {
+                String employeeName = rs.getString(1);
+                int salary = rs.getInt(2);
+                String date = rs.getString(3);
+                String payerName = rs.getString(4);
+
+                model.addRow(new Object[]{employeeName, salary, date, payerName});
+            }
+
+        } catch (SQLException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
+    private void employeeSalaryTxtKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_employeeSalaryTxtKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            employeeSalary();
+        }
+    }//GEN-LAST:event_employeeSalaryTxtKeyPressed
+
+    private void employeeSalaryTxtKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_employeeSalaryTxtKeyReleased
+        if (employeeSalaryTxt.getText().matches(".*[a-zA-Z].*") || employeeSalaryTxt.getText().isEmpty()) {
+            employeeProceed.setEnabled(false);
+        } else {
+            employeeProceed.setEnabled(true);
+        }
+    }//GEN-LAST:event_employeeSalaryTxtKeyReleased
+
+    private void employeeProceedMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_employeeProceedMouseEntered
+        employeeProceed.setBackground(Color.red);
+        employeeProceed.setForeground(Color.white);
+    }//GEN-LAST:event_employeeProceedMouseEntered
+
+    private void employeeProceedMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_employeeProceedMouseExited
+        employeeProceed.setBackground(Color.white);
+        employeeProceed.setForeground(Color.black);
+    }//GEN-LAST:event_employeeProceedMouseExited
+
+    private void otherExpensesAmountTxtKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_otherExpensesAmountTxtKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            otherExpenses();
+        }
+    }//GEN-LAST:event_otherExpensesAmountTxtKeyPressed
+
+    private void otherExpensesAmountTxtKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_otherExpensesAmountTxtKeyReleased
+        if (otherExpensesAmountTxt.getText().matches(".*[a-zA-Z].*") || otherExpensesAmountTxt.getText().isEmpty()) {
+            otherExpensesProceedBtn.setEnabled(false);
+        } else {
+            otherExpensesProceedBtn.setEnabled(true);
+        }
+    }//GEN-LAST:event_otherExpensesAmountTxtKeyReleased
+
+    private void otherExpensesProceedBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_otherExpensesProceedBtnMouseEntered
+        otherExpensesProceedBtn.setBackground(Color.red);
+        otherExpensesProceedBtn.setForeground(Color.white);
+    }//GEN-LAST:event_otherExpensesProceedBtnMouseEntered
+
+    private void otherExpensesProceedBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_otherExpensesProceedBtnMouseExited
+        otherExpensesProceedBtn.setBackground(Color.white);
+        otherExpensesProceedBtn.setForeground(Color.black);
+    }//GEN-LAST:event_otherExpensesProceedBtnMouseExited
+
+    private void otherExpensesProceedBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_otherExpensesProceedBtnActionPerformed
+        otherExpenses();
+    }//GEN-LAST:event_otherExpensesProceedBtnActionPerformed
+    //for other expenses. (ex. wifi, water bills, etc)
+    private void otherExpenses() {
+        try {
+            LocalDate today = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            String date = today.format(formatter);
+
+            
+            String defaultName = otherExpensesNameTxt.getText();
+            String name = Character.toUpperCase(defaultName.charAt(0)) + defaultName.substring(1);
+            int amount = Integer.parseInt(otherExpensesAmountTxt.getText());
+
+            int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+
+            if (response == JOptionPane.YES_OPTION) {
+                pst = con.prepareStatement("INSERT INTO other_expenses_history(name, amount, date) VALUES(?,?,?)");
+                pst.setString(1, name);
+                pst.setInt(2, amount);
+                pst.setString(3, date);
+                pst.executeUpdate();
+
+                otherExpensesAmountTxt.setText("");
+                otherExpensesNameTxt.setText("");
+                otherExpensesProceedBtn.setEnabled(false);
+                otherExpensesTable();
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (NumberFormatException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
+    private void otherExpensesTable() {
+        try {
+            DefaultTableModel model = (DefaultTableModel) otherExpensesTable.getModel();
+            model.setRowCount(0);
+            pst = con.prepareStatement("SELECT name, amount, date FROM other_expenses_history ORDER BY ID DESC");
+            rs = pst.executeQuery();
+            while (rs.next()) {
+                String name = rs.getString(1);
+                int amount = rs.getInt(2);
+                String date = rs.getString(3);
+
+                model.addRow(new Object[]{name, amount, date});
+            }
+
+        } catch (SQLException | NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
+    private void otherExpensesNameTxtKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_otherExpensesNameTxtKeyReleased
+        if (otherExpensesNameTxt.getText().isEmpty()) {
+            otherExpensesProceedBtn.setEnabled(false);
+        } else {
+            otherExpensesProceedBtn.setEnabled(true);
+        }
+
+    }//GEN-LAST:event_otherExpensesNameTxtKeyReleased
+
+    private void restockMedsAmountTxtKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_restockMedsAmountTxtKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            payRestockExpenses();
+        }
+    }//GEN-LAST:event_restockMedsAmountTxtKeyPressed
+
+    private void restockMedsAmountTxtKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_restockMedsAmountTxtKeyReleased
+        if (restockMedsAmountTxt.getText().matches(".*[a-zA-Z].*") || restockMedsAmountTxt.getText().isEmpty()) {
+            restockMedsProcessBtn.setEnabled(false);
+        } else {
+            restockMedsProcessBtn.setEnabled(true);
+        }
+    }//GEN-LAST:event_restockMedsAmountTxtKeyReleased
+
+    private void restockMedsProcessBtnMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_restockMedsProcessBtnMouseEntered
+        restockMedsProcessBtn.setBackground(Color.red);
+        restockMedsProcessBtn.setForeground(Color.white);
+    }//GEN-LAST:event_restockMedsProcessBtnMouseEntered
+
+    private void restockMedsProcessBtnMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_restockMedsProcessBtnMouseExited
+        restockMedsProcessBtn.setBackground(Color.white);
+        restockMedsProcessBtn.setForeground(Color.black);
+    }//GEN-LAST:event_restockMedsProcessBtnMouseExited
+
+    private void restockMedsProcessBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_restockMedsProcessBtnActionPerformed
+        payRestockExpenses();
+    }//GEN-LAST:event_restockMedsProcessBtnActionPerformed
+    //for restock medicine expenses table
+    private void restockExpensesTable() {
+        try {
+            DefaultTableModel model = (DefaultTableModel) restockExpensesTbl.getModel();
+            model.setRowCount(0);
+            pst = con.prepareStatement("SELECT meds_name, quantity, price, date, status FROM restock_expenses_history ORDER BY ID DESC");
+            rs = pst.executeQuery();
+            while (rs.next()) {
+                String name = rs.getString(1);
+                int quan = rs.getInt(2);
+                float price = rs.getFloat(3);
+                String date = rs.getString(4);
+                String status = rs.getString(5);
+                model.addRow(new Object[]{name, quan, price, date, status});
+            }
+
+        } catch (SQLException | NullPointerException ex) {
+            //JOptionPane.showMessageDialog(this, "Unexpected Error!");
+        }
+    }
+
+    private void payRestockExpenses() {
+        try {
+            LocalDate today = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            String date = today.format(formatter);
+
+            String status = "Paid";
+            String name = restockMedsNameTxt.getText();
+            float price = Float.parseFloat(restockMedsAmountTxt.getText());
+
+            int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+            if (response == JOptionPane.YES_OPTION) {
+                pst = con.prepareStatement("UPDATE restock_expenses_history SET price = ?, date = ?, status = ? WHERE meds_name = ?");
+                pst.setFloat(1, price);
+                pst.setString(2, date);
+                pst.setString(3, status);
+                pst.setString(4, name);
+                pst.executeUpdate();
+
+                restockMedsAmountTxt.setText("");
+                restockMedsNameTxt.setText("");
+                restockMedsProcessBtn.setEnabled(false);
+                restockMedsQuanTxt.setText("");
+                restockExpensesTable();
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
+    private void restockExpensesTblMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_restockExpensesTblMouseClicked
+        try{
+        int selectedRow = restockExpensesTbl.getSelectedRow();
+        String status = restockExpensesTbl.getValueAt(selectedRow, 4).toString();
+
+        if (status.equals("Paid")) {
+            JOptionPane.showMessageDialog(this, "This item has already been paid!");
+        } else {
+            String name = restockExpensesTbl.getValueAt(selectedRow, 0).toString();
+            String quan = restockExpensesTbl.getValueAt(selectedRow, 1).toString();
+
+            restockMedsNameTxt.setText(name);
+            restockMedsQuanTxt.setText(quan);
+            restockMedsAmountTxt.setEditable(true);
+            restockMedsAmountTxt.requestFocus();
+        }
+        }catch(ArrayIndexOutOfBoundsException ex){
+            JOptionPane.showMessageDialog(this, "You need to be the owner to access this!");
+        }
+    }//GEN-LAST:event_restockExpensesTblMouseClicked
+
     /**
      * @param args the command line arguments
      */
@@ -3561,6 +4441,10 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JLabel dashboardSalesLbl;
     private com.k33ptoo.components.KGradientPanel dashboardSalesPanel;
     private javax.swing.JCheckBox discount;
+    private javax.swing.JComboBox<String> employeeCombo;
+    private javax.swing.JTable employeeHistoryTable;
+    private javax.swing.JButton employeeProceed;
+    private javax.swing.JTextField employeeSalaryTxt;
     private javax.swing.JLabel expLbl;
     private javax.swing.JPanel expenses;
     private javax.swing.JPanel expensesTab;
@@ -3572,11 +4456,16 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel inventory;
     private javax.swing.JPanel inventoryTab;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
+    private javax.swing.JLabel jLabel18;
+    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
@@ -3598,22 +4487,38 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel36;
     private javax.swing.JLabel jLabel37;
     private javax.swing.JLabel jLabel38;
+    private javax.swing.JLabel jLabel39;
     private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel40;
+    private javax.swing.JLabel jLabel41;
+    private javax.swing.JLabel jLabel42;
+    private javax.swing.JLabel jLabel43;
+    private javax.swing.JLabel jLabel44;
+    private javax.swing.JLabel jLabel45;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane10;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JScrollPane jScrollPane6;
     private javax.swing.JScrollPane jScrollPane7;
+    private javax.swing.JScrollPane jScrollPane8;
+    private javax.swing.JScrollPane jScrollPane9;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private com.k33ptoo.components.KGradientPanel kGradientPanel1;
     private com.k33ptoo.components.KGradientPanel kGradientPanel2;
+    private com.k33ptoo.components.KGradientPanel kGradientPanel3;
+    private com.k33ptoo.components.KGradientPanel kGradientPanel4;
     private com.k33ptoo.components.KGradientPanel kGradientPanel5;
     private javax.swing.JPanel lineChartPanelDaily;
     private javax.swing.JLabel logout;
@@ -3626,7 +4531,14 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JLabel nextDaily;
     private javax.swing.JLabel nextMonth;
     private javax.swing.JLabel nextWeekly;
+    private javax.swing.JLabel noteLbl;
+    private javax.swing.JLabel noteLbl1;
+    private javax.swing.JLabel noteLbl2;
     private javax.swing.JTable orderTable;
+    private javax.swing.JTextField otherExpensesAmountTxt;
+    private javax.swing.JTextField otherExpensesNameTxt;
+    private javax.swing.JButton otherExpensesProceedBtn;
+    private javax.swing.JTable otherExpensesTable;
     private javax.swing.JTable outOfStockTable;
     private javax.swing.JTextField payment;
     private javax.swing.JPanel pieChartPanelWeekly;
@@ -3636,7 +4548,12 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JLabel prevDaily;
     private javax.swing.JLabel prevMonth;
     private javax.swing.JLabel prevWeekly;
-    private javax.swing.JTable purcharseHistoryTable;
+    private javax.swing.JTable purchaseHistoryTable;
+    private javax.swing.JTable restockExpensesTbl;
+    private javax.swing.JTextField restockMedsAmountTxt;
+    private javax.swing.JTextField restockMedsNameTxt;
+    private javax.swing.JButton restockMedsProcessBtn;
+    private javax.swing.JTextField restockMedsQuanTxt;
     private javax.swing.JPanel sales;
     private javax.swing.JLabel salesLbl;
     private javax.swing.JPanel salesTab;
@@ -3645,6 +4562,7 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel supplier;
     private javax.swing.JLabel supplierLbl;
     private javax.swing.JPanel supplierTab;
+    private javax.swing.JTabbedPane tabOptions;
     private javax.swing.JTextField totalTxt;
     private javax.swing.JButton updateBtn;
     private javax.swing.JTextField updatePrice;

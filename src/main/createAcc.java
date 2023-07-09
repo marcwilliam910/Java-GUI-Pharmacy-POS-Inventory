@@ -2,6 +2,7 @@ package main;
 
 import java.awt.Color;
 import java.awt.HeadlessException;
+import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -46,9 +47,61 @@ public class createAcc extends javax.swing.JFrame {
         }
     }
 
-    private void removeCorner(){
+    private void removeCorner() {
         this.setContentPane(bg);
         this.setBackground(new Color(0, 0, 0, 0));
+    }
+
+    private void createClicked(){
+            try {
+            String user = username.getText();
+            String pass = password.getText();
+            if (user.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill out Username");
+                create.requestFocus();
+            } else if (pass.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill out Password");
+                create.requestFocus();
+            } else if (user.equals("Username") || pass.equals("password")) {
+                JOptionPane.showMessageDialog(this, "Please fill out Username and Password First");
+                create.requestFocus();
+
+            } else {
+                String[] position = {"Owner", "Employee"};
+                int defaultOption = 1;
+                int choice = JOptionPane.showOptionDialog(null, "Select your position", "Position", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, position, position[defaultOption]);
+
+                int isSure = JOptionPane.showConfirmDialog(null, "Create Account?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                
+                if (isSure == JOptionPane.NO_OPTION || isSure == JOptionPane.CANCEL_OPTION) {
+                   
+                } else if(choice == JOptionPane.YES_OPTION) {
+                    pst = con.prepareStatement("INSERT INTO login(username,password,position) VALUES(?,?, ?)");
+                    pst.setString(1, user);
+                    pst.setString(2, pass);
+                    pst.setString(3, "Owner");
+                    pst.executeUpdate();
+
+                    JOptionPane.showMessageDialog(null, "Account Added!");
+                    dispose();
+                    new login().setVisible(true);
+                }
+                else{
+                    pst = con.prepareStatement("INSERT INTO login(username,password,position) VALUES(?,?, ?)");
+                    pst.setString(1, user);
+                    pst.setString(2, pass);
+                    pst.setString(3, "Employee");
+                    pst.executeUpdate();
+
+                    JOptionPane.showMessageDialog(null, "Account Added!");
+                    dispose();
+                    new login().setVisible(true);
+                }
+
+            }
+        } catch (HeadlessException | SQLException e) {
+        }
+
     }
     
     @SuppressWarnings("unchecked")
@@ -80,7 +133,7 @@ public class createAcc extends javax.swing.JFrame {
         });
 
         password.setText("password");
-        password.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(0, 0, 0)));
+        password.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(204, 204, 204)));
         password.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
                 passwordFocusGained(evt);
@@ -89,9 +142,14 @@ public class createAcc extends javax.swing.JFrame {
                 passwordFocusLost(evt);
             }
         });
+        password.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                passwordKeyPressed(evt);
+            }
+        });
 
         username.setText("Username");
-        username.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(0, 0, 0)));
+        username.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(204, 204, 204)));
         username.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
                 usernameFocusGained(evt);
@@ -105,13 +163,31 @@ public class createAcc extends javax.swing.JFrame {
                 usernameActionPerformed(evt);
             }
         });
+        username.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                usernameKeyPressed(evt);
+            }
+        });
 
         showpassCB.setBackground(new java.awt.Color(255, 255, 255));
         showpassCB.setText("Show Password");
         showpassCB.setBorder(null);
+        showpassCB.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                showpassCBMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                showpassCBMouseExited(evt);
+            }
+        });
         showpassCB.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showpassCBActionPerformed(evt);
+            }
+        });
+        showpassCB.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                showpassCBKeyPressed(evt);
             }
         });
 
@@ -160,10 +236,10 @@ public class createAcc extends javax.swing.JFrame {
         bg.setLayout(bgLayout);
         bgLayout.setHorizontalGroup(
             bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(bgLayout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createSequentialGroup()
                 .addContainerGap(42, Short.MAX_VALUE)
                 .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createSequentialGroup()
                             .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                 .addComponent(showpassCB)
@@ -174,20 +250,20 @@ public class createAcc extends javax.swing.JFrame {
                                     .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                     .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                         .addComponent(username)
-                                        .addComponent(password, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE))))
-                            .addGap(50, 50, 50))
-                        .addGroup(bgLayout.createSequentialGroup()
-                            .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(create, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 238, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addContainerGap()))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createSequentialGroup()
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap())))
-            .addGroup(bgLayout.createSequentialGroup()
-                .addGap(67, 67, 67)
-                .addComponent(create_acc, javax.swing.GroupLayout.PREFERRED_SIZE, 177, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                                        .addComponent(password, javax.swing.GroupLayout.PREFERRED_SIZE, 186, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                            .addGap(2, 2, 2))
+                        .addComponent(create, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(bgLayout.createSequentialGroup()
+                        .addGap(25, 25, 25)
+                        .addComponent(create_acc, javax.swing.GroupLayout.PREFERRED_SIZE, 177, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(28, 28, 28))
+                    .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createSequentialGroup()
+                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 238, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(40, 40, 40))
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, bgLayout.createSequentialGroup()
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addContainerGap()))))
         );
         bgLayout.setVerticalGroup(
             bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -196,7 +272,7 @@ public class createAcc extends javax.swing.JFrame {
                 .addComponent(jLabel4)
                 .addGap(5, 5, 5)
                 .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 36, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 49, Short.MAX_VALUE)
                 .addGroup(bgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(bgLayout.createSequentialGroup()
                         .addComponent(username, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -212,7 +288,7 @@ public class createAcc extends javax.swing.JFrame {
                 .addComponent(create, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(create_acc)
-                .addGap(49, 49, 49))
+                .addGap(36, 36, 36))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -264,7 +340,7 @@ public class createAcc extends javax.swing.JFrame {
 
     private void showpassCBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showpassCBActionPerformed
         if (password.getText().equals("password")) {
-             
+
         } else if (showpassCB.isSelected()) {
             password.setEchoChar((char) 0);
         } else {
@@ -273,39 +349,7 @@ public class createAcc extends javax.swing.JFrame {
     }//GEN-LAST:event_showpassCBActionPerformed
 
     private void createMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_createMouseClicked
-        try {
-            String user = username.getText();
-            String pass = password.getText();
-            if (user.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill out Username");
-                create.requestFocus();
-            } else if (pass.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill out Password");
-                create.requestFocus();
-            } else if (user.equals("Username") || pass.equals("password")) {
-                JOptionPane.showMessageDialog(this, "Please fill out Username and Password First");
-                create.requestFocus();
-
-            } else {
-                int isSure = JOptionPane.showConfirmDialog(null, "Create Account?", "Confirmation", JOptionPane.YES_NO_OPTION);
-                if (isSure == JOptionPane.YES_OPTION) {
-                    pst = con.prepareStatement("INSERT INTO login(username,password) VALUES(?,?)");
-                    pst.setString(1, user);
-                    pst.setString(2, pass);
-                    pst.executeUpdate();
-
-                    JOptionPane.showMessageDialog(null, "Account Added!");
-                    dispose();
-                    new login().setVisible(true);
-
-                } else {
-
-                }
-
-            }
-        } catch (HeadlessException | SQLException e) {
-        }
-
+        createClicked();
     }//GEN-LAST:event_createMouseClicked
 
     private void createMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_createMouseEntered
@@ -331,6 +375,32 @@ public class createAcc extends javax.swing.JFrame {
     private void create_accMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_create_accMouseExited
         create_acc.setForeground(Color.black);
     }//GEN-LAST:event_create_accMouseExited
+
+    private void showpassCBMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_showpassCBMouseEntered
+        showpassCB.setForeground(Color.white);
+    }//GEN-LAST:event_showpassCBMouseEntered
+
+    private void showpassCBMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_showpassCBMouseExited
+        showpassCB.setForeground(Color.BLACK);
+    }//GEN-LAST:event_showpassCBMouseExited
+
+    private void usernameKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_usernameKeyPressed
+         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+            createClicked();
+        }
+    }//GEN-LAST:event_usernameKeyPressed
+
+    private void passwordKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_passwordKeyPressed
+        if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+            createClicked();
+        }
+    }//GEN-LAST:event_passwordKeyPressed
+
+    private void showpassCBKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_showpassCBKeyPressed
+        if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+            createClicked();
+        }
+    }//GEN-LAST:event_showpassCBKeyPressed
 
     /**
      * @param args the command line arguments

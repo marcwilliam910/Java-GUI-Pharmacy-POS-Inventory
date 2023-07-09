@@ -6,6 +6,7 @@
 package main;
 
 import java.awt.Color;
+import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -90,8 +91,6 @@ public class login extends javax.swing.JFrame {
             if (rs.next()) {
                 userID = Integer.parseInt(rs.getString("ID"));
             }
-            
-            System.out.println(user + " " + userID);
         } catch (SQLException | NullPointerException ex) {
 
         }
@@ -109,6 +108,48 @@ public class login extends javax.swing.JFrame {
             pst.setString(2, user);
             pst.executeUpdate();
             
+        } catch (SQLException ex) {
+            Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void loginClicked(){
+        try {
+            String username = usernameCombo.getSelectedItem().toString();
+            String pass = password.getText();
+
+            pst = con.prepareStatement("SELECT username, password FROM login WHERE username = ? and password = ?");
+            pst.setString(1, username);
+            pst.setString(2, pass);
+            rs = pst.executeQuery();
+
+            if (rs.next()) {
+                JOptionPane.showMessageDialog(this, "Login Success!");
+                getUserId();
+                loginHistory();
+                this.dispose();
+                //since static sya, no need to instantiate
+                loading.startLoadingProcess();
+
+            } else if (username.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill out Username");
+                login.requestFocus();
+            } else if (pass.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill out Password");
+                login.requestFocus();
+            } else if (username.equals("Username") && pass.equals("password")) {
+                JOptionPane.showMessageDialog(this, "Please fill out Username and Password First");
+                login.requestFocus();
+            } else {
+                JOptionPane.showMessageDialog(this, "Wrong Username or Password!", "Message", JOptionPane.ERROR_MESSAGE);
+                login.requestFocus();
+                password.setText("");
+                showpassCB.setSelected(false);
+
+            }
+
+        } catch (NullPointerException ex) {
+            JOptionPane.showMessageDialog(this, "No Database Found!");
         } catch (SQLException ex) {
             Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -149,6 +190,11 @@ public class login extends javax.swing.JFrame {
                 passwordFocusLost(evt);
             }
         });
+        password.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                passwordKeyPressed(evt);
+            }
+        });
 
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/username_new.png"))); // NOI18N
 
@@ -171,17 +217,30 @@ public class login extends javax.swing.JFrame {
             }
         });
 
-        showpassCB.setBackground(new java.awt.Color(255, 255, 255));
         showpassCB.setText("Show Password");
+        showpassCB.setBackground(new java.awt.Color(255, 255, 255));
         showpassCB.setBorder(null);
+        showpassCB.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                showpassCBMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                showpassCBMouseExited(evt);
+            }
+        });
         showpassCB.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showpassCBActionPerformed(evt);
             }
         });
+        showpassCB.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                showpassCBKeyPressed(evt);
+            }
+        });
 
-        jLabel4.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         jLabel4.setText("X");
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         jLabel4.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 jLabel4MouseClicked(evt);
@@ -192,6 +251,12 @@ public class login extends javax.swing.JFrame {
 
         usernameCombo.setBackground(new java.awt.Color(204, 204, 204));
         usernameCombo.setBorder(null);
+        usernameCombo.setFont(new java.awt.Font("Segoe UI", 2, 14)); // NOI18N
+        usernameCombo.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                usernameComboKeyPressed(evt);
+            }
+        });
 
         create_acc.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         create_acc.setText("jLabel6");
@@ -312,43 +377,7 @@ public class login extends javax.swing.JFrame {
     }//GEN-LAST:event_loginMouseEntered
 
     private void loginMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginMouseClicked
-        try {
-            String user = usernameCombo.getSelectedItem().toString();
-            String pass = password.getText();
-
-            pst = con.prepareStatement("SELECT username, password FROM login WHERE username = ? and password = ?");
-            pst.setString(1, user);
-            pst.setString(2, pass);
-            rs = pst.executeQuery();
-
-            if (rs.next()) {
-                JOptionPane.showMessageDialog(this, "Login Success!");
-                getUserId();
-                loginHistory();
-                this.dispose();
-                //since static sya, no need to instantiate
-                loading.startLoadingProcess();
-
-            } else if (user.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill out Username");
-                login.requestFocus();
-            } else if (pass.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill out Password");
-                login.requestFocus();
-            } else if (user.equals("Username") && pass.equals("password")) {
-                JOptionPane.showMessageDialog(this, "Please fill out Username and Password First");
-                login.requestFocus();
-            } else {
-                JOptionPane.showMessageDialog(this, "Wrong Username or Password!", "Message", JOptionPane.ERROR_MESSAGE);
-                login.requestFocus();
-
-            }
-
-        } catch (NullPointerException ex) {
-            JOptionPane.showMessageDialog(this, "No Database Found!");
-        } catch (SQLException ex) {
-            Logger.getLogger(login.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        loginClicked();
     }//GEN-LAST:event_loginMouseClicked
 
     private void passwordFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_passwordFocusLost
@@ -375,6 +404,32 @@ public class login extends javax.swing.JFrame {
         dispose();
         new createAcc().setVisible(true);
     }//GEN-LAST:event_create_accMouseClicked
+
+    private void showpassCBMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_showpassCBMouseEntered
+        showpassCB.setForeground(Color.WHITE);
+    }//GEN-LAST:event_showpassCBMouseEntered
+
+    private void showpassCBMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_showpassCBMouseExited
+        showpassCB.setForeground(Color.black);
+    }//GEN-LAST:event_showpassCBMouseExited
+
+    private void usernameComboKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_usernameComboKeyPressed
+         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+            loginClicked();
+        }
+    }//GEN-LAST:event_usernameComboKeyPressed
+
+    private void passwordKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_passwordKeyPressed
+         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+            loginClicked();
+        }
+    }//GEN-LAST:event_passwordKeyPressed
+
+    private void showpassCBKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_showpassCBKeyPressed
+         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+            loginClicked();
+        }
+    }//GEN-LAST:event_showpassCBKeyPressed
 
     /**
      * @param args the command line arguments
