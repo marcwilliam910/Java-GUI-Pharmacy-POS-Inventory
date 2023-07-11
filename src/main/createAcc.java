@@ -26,9 +26,9 @@ public class createAcc extends javax.swing.JFrame {
     }
 
     //CONNECTOR SA XAMPP MYSQL    
-    String url = "jdbc:mysql://localhost:3306/pharma";
-    String sqlusername = "root";
-    String sqlpassword = "";
+    private final String url = "jdbc:mysql://localhost:3306/pharma";
+    private final String sqlusername = "root";
+    private final String sqlpassword = "";
 
     //para iconnect yung mysql sa gui
     Connection con;
@@ -52,8 +52,8 @@ public class createAcc extends javax.swing.JFrame {
         this.setBackground(new Color(0, 0, 0, 0));
     }
 
-    private void createClicked(){
-            try {
+    private void createClicked() {
+        try {
             String user = username.getText();
             String pass = password.getText();
             if (user.isEmpty()) {
@@ -72,21 +72,25 @@ public class createAcc extends javax.swing.JFrame {
                 int choice = JOptionPane.showOptionDialog(null, "Select your position", "Position", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, position, position[defaultOption]);
 
                 int isSure = JOptionPane.showConfirmDialog(null, "Create Account?", "Confirmation", JOptionPane.YES_NO_OPTION);
-                
-                if (isSure == JOptionPane.NO_OPTION || isSure == JOptionPane.CANCEL_OPTION) {
-                   
-                } else if(choice == JOptionPane.YES_OPTION) {
-                    pst = con.prepareStatement("INSERT INTO login(username,password,position) VALUES(?,?, ?)");
-                    pst.setString(1, user);
-                    pst.setString(2, pass);
-                    pst.setString(3, "Owner");
-                    pst.executeUpdate();
 
-                    JOptionPane.showMessageDialog(null, "Account Added!");
-                    dispose();
-                    new login().setVisible(true);
-                }
-                else{
+                if (isSure == JOptionPane.NO_OPTION || isSure == JOptionPane.CANCEL_OPTION) {
+
+                } else if (choice == JOptionPane.YES_OPTION) {
+                    String pinCode = JOptionPane.showInputDialog("Enter pin code to be an Owner: ");
+                    if (pinCode.equals("12345")) {
+                        pst = con.prepareStatement("INSERT INTO login(username,password,position) VALUES(?,?, ?)");
+                        pst.setString(1, user);
+                        pst.setString(2, pass);
+                        pst.setString(3, "Owner");
+                        pst.executeUpdate();
+
+                        JOptionPane.showMessageDialog(null, "Account Added!");
+                        dispose();
+                        new login().setVisible(true);
+                    }else{
+                        JOptionPane.showMessageDialog(null, "Pin Code is Wrong!");
+                    }
+                } else {
                     pst = con.prepareStatement("INSERT INTO login(username,password,position) VALUES(?,?, ?)");
                     pst.setString(1, user);
                     pst.setString(2, pass);
@@ -99,11 +103,11 @@ public class createAcc extends javax.swing.JFrame {
                 }
 
             }
-        } catch (HeadlessException | SQLException e) {
+        } catch (HeadlessException | SQLException | NullPointerException e) {
         }
 
     }
-    
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -385,19 +389,19 @@ public class createAcc extends javax.swing.JFrame {
     }//GEN-LAST:event_showpassCBMouseExited
 
     private void usernameKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_usernameKeyPressed
-         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
             createClicked();
         }
     }//GEN-LAST:event_usernameKeyPressed
 
     private void passwordKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_passwordKeyPressed
-        if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
             createClicked();
         }
     }//GEN-LAST:event_passwordKeyPressed
 
     private void showpassCBKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_showpassCBKeyPressed
-        if(evt.getKeyCode() == KeyEvent.VK_ENTER){
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
             createClicked();
         }
     }//GEN-LAST:event_showpassCBKeyPressed

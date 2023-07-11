@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package main;
 
 import java.awt.Color;
@@ -18,15 +14,10 @@ import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.border.Border;
 
-/**
- *
- * @author asus
- */
+
 public class login extends javax.swing.JFrame {
 
-    /**
-     * Creates new form login
-     */
+   
     protected int userID;
     protected String user = "";
 
@@ -39,9 +30,9 @@ public class login extends javax.swing.JFrame {
     }
 
     //CONNECTOR SA XAMPP MYSQL    
-    String url = "jdbc:mysql://localhost:3306/pharma";
-    String sqlusername = "root";
-    String sqlpassword = "";
+    private final String url = "jdbc:mysql://localhost:3306/pharma";
+    private final String sqlusername = "root";
+    private final String sqlpassword = "";
 
     //para iconnect yung mysql sa gui
     Connection con;
@@ -175,8 +166,8 @@ public class login extends javax.swing.JFrame {
         setUndecorated(true);
 
         bg.setkBorderRadius(80);
-        bg.setkEndColor(new java.awt.Color(73, 254, 73));
-        bg.setkStartColor(new java.awt.Color(95, 95, 249));
+        bg.setkEndColor(new java.awt.Color(255, 0, 255));
+        bg.setkStartColor(new java.awt.Color(0, 0, 255));
 
         jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/logo (2).png"))); // NOI18N
 
@@ -393,7 +384,7 @@ public class login extends javax.swing.JFrame {
     }//GEN-LAST:event_passwordFocusGained
 
     private void create_accMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_create_accMouseEntered
-        create_acc.setForeground(Color.blue);
+        create_acc.setForeground(Color.white);
     }//GEN-LAST:event_create_accMouseEntered
 
     private void create_accMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_create_accMouseExited

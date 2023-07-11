@@ -33,6 +33,7 @@ import org.jfree.chart.plot.PiePlot3D;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.data.statistics.HistogramDataset;
 
 public class pharmacy extends javax.swing.JFrame {
 
@@ -137,6 +138,9 @@ public class pharmacy extends javax.swing.JFrame {
         medsTable.setFont(insideFont);
         DefaultTableCellRenderer medsTableRenderer = (DefaultTableCellRenderer) medsTableHeader.getDefaultRenderer();
         medsTableRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer medsCenterRenderer = new DefaultTableCellRenderer();
+        medsCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        medsTable.setDefaultRenderer(Object.class, medsCenterRenderer);
 
         //for table sa inventory
         JTableHeader medsTable1Header = medsTable1.getTableHeader();
@@ -147,6 +151,9 @@ public class pharmacy extends javax.swing.JFrame {
         medsTable1.setFont(insideFont);
         DefaultTableCellRenderer medsTable1Renderer = (DefaultTableCellRenderer) medsTable1Header.getDefaultRenderer();
         medsTable1Renderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer meds1CenterRenderer = new DefaultTableCellRenderer();
+        meds1CenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        medsTable1.setDefaultRenderer(Object.class, meds1CenterRenderer);
 
         //for table sa order
         JTableHeader orderTableHeader = orderTable.getTableHeader();
@@ -155,6 +162,9 @@ public class pharmacy extends javax.swing.JFrame {
         orderTable.setFont(new Font("Cambria", Font.PLAIN, 14));
         DefaultTableCellRenderer orderRenderer = (DefaultTableCellRenderer) orderTableHeader.getDefaultRenderer();
         orderRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer orderCenterRenderer = new DefaultTableCellRenderer();
+        orderCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        orderTable.setDefaultRenderer(Object.class, orderCenterRenderer);
 
         //for table sa purchase history
         JTableHeader purchaseHistoryHeader = purchaseHistoryTable.getTableHeader();
@@ -162,6 +172,9 @@ public class pharmacy extends javax.swing.JFrame {
         purchaseHistoryHeader.setFont(font);
         DefaultTableCellRenderer purchaseHistoryRenderer = (DefaultTableCellRenderer) purchaseHistoryHeader.getDefaultRenderer();
         purchaseHistoryRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer purchaseCenterRenderer = new DefaultTableCellRenderer();
+        purchaseCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        purchaseHistoryTable.setDefaultRenderer(Object.class, purchaseCenterRenderer);
 
         //for out of stock table
         JTableHeader stockHeader = outOfStockTable.getTableHeader();
@@ -169,6 +182,9 @@ public class pharmacy extends javax.swing.JFrame {
         stockHeader.setFont(font);
         DefaultTableCellRenderer stockRenderer = (DefaultTableCellRenderer) stockHeader.getDefaultRenderer();
         stockRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer stockCenterRenderer = new DefaultTableCellRenderer();
+        stockCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        outOfStockTable.setDefaultRenderer(Object.class, stockCenterRenderer);
 
         //for employee salary table
         JTableHeader employeeHeader = employeeHistoryTable.getTableHeader();
@@ -176,6 +192,9 @@ public class pharmacy extends javax.swing.JFrame {
         employeeHeader.setFont(font);
         DefaultTableCellRenderer employeeSalaryRenderer = (DefaultTableCellRenderer) employeeHeader.getDefaultRenderer();
         employeeSalaryRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer salaryCenterRenderer = new DefaultTableCellRenderer();
+        salaryCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        employeeHistoryTable.setDefaultRenderer(Object.class, salaryCenterRenderer);
 
         //for other expenses table
         JTableHeader otherExpensesHeader = otherExpensesTable.getTableHeader();
@@ -183,6 +202,9 @@ public class pharmacy extends javax.swing.JFrame {
         otherExpensesHeader.setFont(font);
         DefaultTableCellRenderer otherExpensesRenderer = (DefaultTableCellRenderer) otherExpensesHeader.getDefaultRenderer();
         otherExpensesRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer otherCenterRenderer = new DefaultTableCellRenderer();
+        otherCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        otherExpensesTable.setDefaultRenderer(Object.class, otherCenterRenderer);
 
         //for restock medicine expenses table
         JTableHeader restockExpensesHeader = restockExpensesTbl.getTableHeader();
@@ -190,6 +212,21 @@ public class pharmacy extends javax.swing.JFrame {
         restockExpensesHeader.setFont(new Font("Cambria", Font.BOLD, 15));
         DefaultTableCellRenderer restockExpensesRenderer = (DefaultTableCellRenderer) restockExpensesHeader.getDefaultRenderer();
         restockExpensesRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer restockCenterRenderer = new DefaultTableCellRenderer();
+        restockCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        restockExpensesTbl.setDefaultRenderer(Object.class, restockCenterRenderer);
+
+        //for income table
+        JTableHeader incomeHeader = incomeTable.getTableHeader();
+        incomeHeader.setForeground(Color.blue);
+        incomeHeader.setFont(new Font("Cambria", Font.BOLD, 25));
+        DefaultTableCellRenderer incomeRenderer = (DefaultTableCellRenderer) incomeHeader.getDefaultRenderer();
+        incomeRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        incomeTable.setFont(new Font("Calibri", Font.PLAIN, 20));
+        incomeTable.setRowHeight(30);
+        DefaultTableCellRenderer incomeCenterRenderer = new DefaultTableCellRenderer();
+        incomeCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        incomeTable.setDefaultRenderer(Object.class, incomeCenterRenderer);
 
     }
 
@@ -1082,7 +1119,7 @@ public class pharmacy extends javax.swing.JFrame {
             if (rs.last()) {
                 monthlySales = rs.getInt(1);
             }
-            dashboardIncomeLbl.setText(String.valueOf(monthlySales));
+            dashboardSaleLbl.setText(String.valueOf(monthlySales));
 
         } catch (SQLException | NullPointerException ex) {
             JOptionPane.showMessageDialog(null, "No Database Found!");
@@ -1133,6 +1170,13 @@ public class pharmacy extends javax.swing.JFrame {
                 restockMedsQuanTxt.setEditable(false);
                 restockMedsProcessBtn.setEnabled(false);
                 restockExpensesTbl.setEnabled(false);
+
+                pinCode.setEnabled(false);
+                pinCode.setToolTipText("You need to be the Owner to access this!");
+            } else {
+                //to show the pin code
+                pinCode.setEnabled(true);
+                pinCode.setToolTipText("Click to view the pin code");
             }
 
         } catch (SQLException | NullPointerException ex) {
@@ -1145,6 +1189,133 @@ public class pharmacy extends javax.swing.JFrame {
         employeeSalaryHistory();
         otherExpensesTable();
         restockExpensesTable();
+    }
+
+    //for income chart
+    private void incomeToDB() {
+        try {
+            LocalDate currentDate = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+            String currentMonthAndYr = formatter.format(currentDate);
+
+            int restoctRowCount = restockExpensesTbl.getRowCount();
+            int employeeRowCount = employeeHistoryTable.getRowCount();
+            int otherRowCount = otherExpensesTable.getRowCount();
+            float sumOfExpenses = 0;
+
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+
+            //for restock medicine expenses
+            for (int i = 0; i < restoctRowCount; i++) {
+                //check the row if it is paid
+                String paidStatus = restockExpensesTbl.getValueAt(i, 4).toString();
+
+                if (paidStatus.equals("Paid")) {
+                    sumOfExpenses += Float.parseFloat(restockExpensesTbl.getValueAt(i, 2).toString());
+                }
+
+            }
+
+            //for employee salary expenses
+            for (int i = 0; i < employeeRowCount; i++) {
+                //convert the date July 9, 2023 to July 2023 only
+                String datePaid = employeeHistoryTable.getValueAt(i, 2).toString();
+
+                LocalDate convertDate = LocalDate.parse(datePaid, inputFormatter);
+                String formattedDate = outputFormatter.format(convertDate);
+
+                if (currentMonthAndYr.equals(formattedDate)) {
+                    sumOfExpenses += Float.parseFloat(employeeHistoryTable.getValueAt(i, 1).toString());
+                }
+            }
+
+            //for other expenses
+            for (int i = 0; i < otherRowCount; i++) {
+                //convert the date July 9, 2023 to July 2023 only
+                String datePaid = otherExpensesTable.getValueAt(i, 2).toString();
+
+                LocalDate convertDate = LocalDate.parse(datePaid, inputFormatter);
+                String formattedDate = outputFormatter.format(convertDate);
+
+                if (currentMonthAndYr.equals(formattedDate)) {
+                    sumOfExpenses += Float.parseFloat(otherExpensesTable.getValueAt(i, 1).toString());
+                }
+            }
+
+            float totalSales = Float.parseFloat(dashboardSaleLbl.getText());
+            float totalIncome = totalSales - sumOfExpenses;
+
+            String dateCondition = null;
+            pst = con.prepareStatement("SELECT month_and_year FROM monthly_income");
+            rs = pst.executeQuery();
+            if (rs.last()) {
+                dateCondition = rs.getString(1);
+            }
+
+            if (dateCondition == null || !dateCondition.equals(currentMonthAndYr)) {
+                pst = con.prepareStatement("INSERT INTO monthly_income(month_and_year, income) VALUES(?,?)");
+                pst.setString(1, currentMonthAndYr);
+                pst.setFloat(2, totalIncome);
+                pst.executeUpdate();
+            } else {
+                pst = con.prepareStatement("UPDATE monthly_income SET income = ? WHERE month_and_year = ?");
+                pst.setFloat(1, totalIncome);
+                pst.setString(2, currentMonthAndYr);
+                pst.executeUpdate();
+            }
+        } catch (NullPointerException | SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    //to populate income table
+    private void incomeTable() {
+        try {
+            DefaultTableModel model = (DefaultTableModel) incomeTable.getModel();
+            model.setRowCount(0);
+
+            //used stack for LIFO in displaying on table
+            Stack<Object[]> incomeStack = new Stack<>();
+
+            pst = con.prepareStatement("SELECT month_and_year, income FROM monthly_income");
+            rs = pst.executeQuery();
+            while (rs.next()) {
+                String date = rs.getString(1);
+                float totalIncome = rs.getFloat(2);
+
+                incomeStack.push(new Object[]{date, totalIncome});
+            }
+
+            while (!incomeStack.isEmpty()) {
+                Object[] rowData = incomeStack.pop();
+                model.addRow(rowData);
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    //to show the income of todays date
+    private void showIncome() {
+        try {
+            LocalDate currentDate = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+            String currentMonthAndYr = formatter.format(currentDate);
+
+            float totalIncome = Float.parseFloat(incomeTable.getValueAt(0, 1).toString());
+
+            if (totalIncome < 0) {
+                incomeLbl.setText("Outstanding balance this " + currentMonthAndYr);
+            } else {
+                incomeLbl.setText("Income this " + currentMonthAndYr);
+            }
+
+            setIncomeLbl.setText("Php " + String.valueOf(totalIncome));
+        } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {
+
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -1162,8 +1333,8 @@ public class pharmacy extends javax.swing.JFrame {
         expLbl = new javax.swing.JLabel();
         inventory = new javax.swing.JPanel();
         invLbl = new javax.swing.JLabel();
-        supplier = new javax.swing.JPanel();
-        supplierLbl = new javax.swing.JLabel();
+        income = new javax.swing.JPanel();
+        incomeLabel = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
         logout = new javax.swing.JLabel();
@@ -1181,7 +1352,7 @@ public class pharmacy extends javax.swing.JFrame {
         dashboardIncomePanel = new com.k33ptoo.components.KGradientPanel();
         jLabel31 = new javax.swing.JLabel();
         jLabel36 = new javax.swing.JLabel();
-        dashboardIncomeLbl = new javax.swing.JLabel();
+        dashboardSaleLbl = new javax.swing.JLabel();
         calendarPanel1 = new com.github.lgooddatepicker.components.CalendarPanel();
         jScrollPane5 = new javax.swing.JScrollPane();
         purchaseHistoryTable = new javax.swing.JTable();
@@ -1189,6 +1360,7 @@ public class pharmacy extends javax.swing.JFrame {
         jScrollPane6 = new javax.swing.JScrollPane();
         outOfStockTable = new javax.swing.JTable();
         jLabel7 = new javax.swing.JLabel();
+        pinCode = new javax.swing.JLabel();
         posTab = new javax.swing.JPanel();
         buy = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -1297,8 +1469,12 @@ public class pharmacy extends javax.swing.JFrame {
         medsTable1 = new javax.swing.JTable();
         searchInventory = new javax.swing.JTextField();
         jLabel29 = new javax.swing.JLabel();
-        supplierTab = new javax.swing.JPanel();
-        jLabel9 = new javax.swing.JLabel();
+        incomeTab = new javax.swing.JPanel();
+        incomeLbl = new javax.swing.JLabel();
+        jScrollPane11 = new javax.swing.JScrollPane();
+        incomeTable = new javax.swing.JTable();
+        kGradientPanel6 = new com.k33ptoo.components.KGradientPanel();
+        setIncomeLbl = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setUndecorated(true);
@@ -1454,36 +1630,36 @@ public class pharmacy extends javax.swing.JFrame {
             .addComponent(invLbl, javax.swing.GroupLayout.DEFAULT_SIZE, 52, Short.MAX_VALUE)
         );
 
-        supplier.setOpaque(false);
-        supplier.addMouseListener(new java.awt.event.MouseAdapter() {
+        income.setOpaque(false);
+        income.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                supplierMouseClicked(evt);
+                incomeMouseClicked(evt);
             }
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                supplierMouseEntered(evt);
+                incomeMouseEntered(evt);
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                supplierMouseExited(evt);
+                incomeMouseExited(evt);
             }
         });
 
-        supplierLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        supplierLbl.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/income.png"))); // NOI18N
-        supplierLbl.setText("  Income");
-        supplierLbl.setFont(new java.awt.Font("Segoe UI", 3, 18)); // NOI18N
-        supplierLbl.setForeground(new java.awt.Color(255, 255, 255));
+        incomeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        incomeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/income.png"))); // NOI18N
+        incomeLabel.setText("  Income");
+        incomeLabel.setFont(new java.awt.Font("Segoe UI", 3, 18)); // NOI18N
+        incomeLabel.setForeground(new java.awt.Color(255, 255, 255));
 
-        javax.swing.GroupLayout supplierLayout = new javax.swing.GroupLayout(supplier);
-        supplier.setLayout(supplierLayout);
-        supplierLayout.setHorizontalGroup(
-            supplierLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(supplierLayout.createSequentialGroup()
-                .addComponent(supplierLbl, javax.swing.GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
+        javax.swing.GroupLayout incomeLayout = new javax.swing.GroupLayout(income);
+        income.setLayout(incomeLayout);
+        incomeLayout.setHorizontalGroup(
+            incomeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(incomeLayout.createSequentialGroup()
+                .addComponent(incomeLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
                 .addContainerGap())
         );
-        supplierLayout.setVerticalGroup(
-            supplierLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(supplierLbl, javax.swing.GroupLayout.DEFAULT_SIZE, 52, Short.MAX_VALUE)
+        incomeLayout.setVerticalGroup(
+            incomeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(incomeLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 52, Short.MAX_VALUE)
         );
 
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -1526,7 +1702,7 @@ public class pharmacy extends javax.swing.JFrame {
                                     .addComponent(sales, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                     .addComponent(pos, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                     .addComponent(home, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(supplier, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                    .addComponent(income, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                             .addGap(11, 11, 11))
                         .addComponent(jLabel5)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -1549,7 +1725,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGap(10, 10, 10)
                 .addComponent(inventory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(10, 10, 10)
-                .addComponent(supplier, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(income, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
                 .addComponent(logout)
                 .addContainerGap())
@@ -1683,15 +1859,15 @@ public class pharmacy extends javax.swing.JFrame {
 
         jLabel36.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/dashboard_income.png"))); // NOI18N
 
-        dashboardIncomeLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        dashboardIncomeLbl.setText("0");
-        dashboardIncomeLbl.setFont(new java.awt.Font("Segoe UI Black", 1, 24)); // NOI18N
-        dashboardIncomeLbl.addMouseListener(new java.awt.event.MouseAdapter() {
+        dashboardSaleLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        dashboardSaleLbl.setText("0");
+        dashboardSaleLbl.setFont(new java.awt.Font("Segoe UI Black", 1, 24)); // NOI18N
+        dashboardSaleLbl.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                dashboardIncomeLblMouseEntered(evt);
+                dashboardSaleLblMouseEntered(evt);
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                dashboardIncomeLblMouseExited(evt);
+                dashboardSaleLblMouseExited(evt);
             }
         });
 
@@ -1701,7 +1877,7 @@ public class pharmacy extends javax.swing.JFrame {
             dashboardIncomePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(dashboardIncomePanelLayout.createSequentialGroup()
                 .addGroup(dashboardIncomePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(dashboardIncomeLbl, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(dashboardSaleLbl, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(dashboardIncomePanelLayout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(jLabel31, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -1716,7 +1892,7 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGroup(dashboardIncomePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jLabel36)
                     .addGroup(dashboardIncomePanelLayout.createSequentialGroup()
-                        .addComponent(dashboardIncomeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(dashboardSaleLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel31, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -1785,6 +1961,15 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel7.setText("Out of Stock");
         jLabel7.setFont(new java.awt.Font("Tahoma", 2, 18)); // NOI18N
 
+        pinCode.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        pinCode.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        pinCode.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/pin_code.png"))); // NOI18N
+        pinCode.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                pinCodeMouseClicked(evt);
+            }
+        });
+
         javax.swing.GroupLayout homeTabLayout = new javax.swing.GroupLayout(homeTab);
         homeTab.setLayout(homeTabLayout);
         homeTabLayout.setHorizontalGroup(
@@ -1792,33 +1977,41 @@ public class pharmacy extends javax.swing.JFrame {
             .addGroup(homeTabLayout.createSequentialGroup()
                 .addGap(60, 60, 60)
                 .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 516, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(homeTabLayout.createSequentialGroup()
-                        .addGap(142, 142, 142)
-                        .addComponent(jLabel2)))
-                .addGap(10, 10, 10)
-                .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(calendarPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 272, Short.MAX_VALUE)
-                    .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                    .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(157, 157, 157))
-            .addGroup(homeTabLayout.createSequentialGroup()
-                .addGap(100, 100, 100)
-                .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(20, 20, 20)
-                .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(20, 20, 20)
-                .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                        .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(20, 20, 20)
+                        .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(20, 20, 20)
+                        .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(69, 69, 69)
+                        .addComponent(pinCode, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(homeTabLayout.createSequentialGroup()
+                        .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 516, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(homeTabLayout.createSequentialGroup()
+                                .addGap(142, 142, 142)
+                                .addComponent(jLabel2)))
+                        .addGap(10, 10, 10)
+                        .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(calendarPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 272, Short.MAX_VALUE)
+                            .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(157, 157, 157))))
         );
         homeTabLayout.setVerticalGroup(
             homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(homeTabLayout.createSequentialGroup()
-                .addContainerGap(42, Short.MAX_VALUE)
                 .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(homeTabLayout.createSequentialGroup()
+                        .addGap(42, 42, 42)
+                        .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(homeTabLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(pinCode, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(18, 18, 18)
                 .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
@@ -3260,27 +3453,89 @@ public class pharmacy extends javax.swing.JFrame {
 
         tabOptions.addTab("tab5", inventoryTab);
 
-        jLabel9.setText("6");
-        jLabel9.setFont(new java.awt.Font("Tahoma", 3, 36)); // NOI18N
+        incomeLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        incomeLbl.setText("Income this month");
+        incomeLbl.setFont(new java.awt.Font("Tahoma", 3, 36)); // NOI18N
 
-        javax.swing.GroupLayout supplierTabLayout = new javax.swing.GroupLayout(supplierTab);
-        supplierTab.setLayout(supplierTabLayout);
-        supplierTabLayout.setHorizontalGroup(
-            supplierTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(supplierTabLayout.createSequentialGroup()
-                .addGap(439, 439, 439)
-                .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 81, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(495, Short.MAX_VALUE))
+        incomeTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "Date", "Income"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane11.setViewportView(incomeTable);
+        if (incomeTable.getColumnModel().getColumnCount() > 0) {
+            incomeTable.getColumnModel().getColumn(0).setResizable(false);
+            incomeTable.getColumnModel().getColumn(1).setResizable(false);
+        }
+
+        kGradientPanel6.setkBorderRadius(30);
+        kGradientPanel6.setkGradientFocus(800);
+
+        setIncomeLbl.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        setIncomeLbl.setText("Income amount");
+        setIncomeLbl.setFont(new java.awt.Font("Segoe UI", 2, 48)); // NOI18N
+        setIncomeLbl.setForeground(new java.awt.Color(255, 51, 51));
+        setIncomeLbl.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                setIncomeLblMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                setIncomeLblMouseExited(evt);
+            }
+        });
+
+        javax.swing.GroupLayout kGradientPanel6Layout = new javax.swing.GroupLayout(kGradientPanel6);
+        kGradientPanel6.setLayout(kGradientPanel6Layout);
+        kGradientPanel6Layout.setHorizontalGroup(
+            kGradientPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(setIncomeLbl, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 667, Short.MAX_VALUE)
         );
-        supplierTabLayout.setVerticalGroup(
-            supplierTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(supplierTabLayout.createSequentialGroup()
-                .addGap(195, 195, 195)
-                .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(451, Short.MAX_VALUE))
+        kGradientPanel6Layout.setVerticalGroup(
+            kGradientPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(setIncomeLbl, javax.swing.GroupLayout.DEFAULT_SIZE, 100, Short.MAX_VALUE)
         );
 
-        tabOptions.addTab("tab6", supplierTab);
+        javax.swing.GroupLayout incomeTabLayout = new javax.swing.GroupLayout(incomeTab);
+        incomeTab.setLayout(incomeTabLayout);
+        incomeTabLayout.setHorizontalGroup(
+            incomeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(incomeTabLayout.createSequentialGroup()
+                .addGroup(incomeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(incomeTabLayout.createSequentialGroup()
+                        .addGap(27, 27, 27)
+                        .addComponent(incomeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 872, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(incomeTabLayout.createSequentialGroup()
+                        .addGap(124, 124, 124)
+                        .addComponent(kGradientPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(incomeTabLayout.createSequentialGroup()
+                        .addGap(93, 93, 93)
+                        .addComponent(jScrollPane11, javax.swing.GroupLayout.PREFERRED_SIZE, 741, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(116, Short.MAX_VALUE))
+        );
+        incomeTabLayout.setVerticalGroup(
+            incomeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(incomeTabLayout.createSequentialGroup()
+                .addGap(36, 36, 36)
+                .addComponent(incomeLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(29, 29, 29)
+                .addComponent(kGradientPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(26, 26, 26)
+                .addComponent(jScrollPane11, javax.swing.GroupLayout.PREFERRED_SIZE, 380, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(75, Short.MAX_VALUE))
+        );
+
+        tabOptions.addTab("tab6", incomeTab);
 
         jPanel1.add(tabOptions, new org.netbeans.lib.awtextra.AbsoluteConstraints(-30, -32, 1020, 730));
 
@@ -3310,20 +3565,17 @@ public class pharmacy extends javax.swing.JFrame {
         sales.setOpaque(false);
         expenses.setOpaque(false);
         inventory.setOpaque(false);
-        supplier.setOpaque(false);
+        income.setOpaque(false);
 
         home.setBackground(clickedColor);
         pos.setBackground(defaultColor);
         sales.setBackground(defaultColor);
         expenses.setBackground(defaultColor);
         inventory.setBackground(defaultColor);
-        supplier.setBackground(defaultColor);
+        income.setBackground(defaultColor);
 
         tabOptions.setSelectedIndex(0);
-        todaySalesToDailyDB();
-        dailySalesToWeeklyDB();
-        weeklySalesToMonthlyDB();
-        dashboardSalesCount();
+
     }//GEN-LAST:event_homeMouseClicked
 
     private void homeMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_homeMouseEntered
@@ -3340,14 +3592,14 @@ public class pharmacy extends javax.swing.JFrame {
         sales.setOpaque(false);
         expenses.setOpaque(false);
         inventory.setOpaque(false);
-        supplier.setOpaque(false);
+        income.setOpaque(false);
 
         home.setBackground(defaultColor);
         pos.setBackground(clickedColor);
         sales.setBackground(defaultColor);
         expenses.setBackground(defaultColor);
         inventory.setBackground(defaultColor);
-        supplier.setBackground(defaultColor);
+        income.setBackground(defaultColor);
 
         tabOptions.setSelectedIndex(1);
     }//GEN-LAST:event_posMouseClicked
@@ -3366,14 +3618,14 @@ public class pharmacy extends javax.swing.JFrame {
         sales.setOpaque(true);
         expenses.setOpaque(false);
         inventory.setOpaque(false);
-        supplier.setOpaque(false);
+        income.setOpaque(false);
 
         home.setBackground(defaultColor);
         pos.setBackground(defaultColor);
         sales.setBackground(clickedColor);
         expenses.setBackground(defaultColor);
         inventory.setBackground(defaultColor);
-        supplier.setBackground(defaultColor);
+        income.setBackground(defaultColor);
 
         tabOptions.setSelectedIndex(2);
 
@@ -3402,14 +3654,14 @@ public class pharmacy extends javax.swing.JFrame {
         sales.setOpaque(false);
         expenses.setOpaque(true);
         inventory.setOpaque(false);
-        supplier.setOpaque(false);
+        income.setOpaque(false);
 
         home.setBackground(defaultColor);
         pos.setBackground(defaultColor);
         sales.setBackground(defaultColor);
         expenses.setBackground(clickedColor);
         inventory.setBackground(defaultColor);
-        supplier.setBackground(defaultColor);
+        income.setBackground(defaultColor);
 
         tabOptions.setSelectedIndex(3);
     }//GEN-LAST:event_expensesMouseClicked
@@ -3430,14 +3682,14 @@ public class pharmacy extends javax.swing.JFrame {
         sales.setOpaque(false);
         expenses.setOpaque(false);
         inventory.setOpaque(true);
-        supplier.setOpaque(false);
+        income.setOpaque(false);
 
         home.setBackground(defaultColor);
         pos.setBackground(defaultColor);
         sales.setBackground(defaultColor);
         expenses.setBackground(defaultColor);
         inventory.setBackground(clickedColor);
-        supplier.setBackground(defaultColor);
+        income.setBackground(defaultColor);
 
         tabOptions.setSelectedIndex(4);
     }//GEN-LAST:event_inventoryMouseClicked
@@ -3482,6 +3734,10 @@ public class pharmacy extends javax.swing.JFrame {
                         order.setRowCount(0);
                         //dito lang sya ibabalik sa 0 kasi need pa ipasa value nya sa receipt
                         discountAmount = 0;
+                        todaySalesToDailyDB();
+                        dailySalesToWeeklyDB();
+                        weeklySalesToMonthlyDB();
+                        dashboardSalesCount();
                         break;
 
                     case JOptionPane.NO_OPTION:
@@ -3491,6 +3747,10 @@ public class pharmacy extends javax.swing.JFrame {
                         DefaultTableModel order1 = (DefaultTableModel) orderTable.getModel();
                         order1.setRowCount(0);
                         clearWhenBuy();
+                        todaySalesToDailyDB();
+                        dailySalesToWeeklyDB();
+                        weeklySalesToMonthlyDB();
+                        dashboardSalesCount();
                         break;
 
                     default:
@@ -3645,7 +3905,7 @@ public class pharmacy extends javax.swing.JFrame {
 
                     table(SELECT_COMMAND);
                     outOfStock();
-                    JOptionPane.showMessageDialog(null, "Stock and Price Updated!");
+                    JOptionPane.showMessageDialog(null, "Stock and Price Updated, Check the expenses tab to pay!");
                     updateBtn.setEnabled(false);
 
                     //para disabled yung mga textfield
@@ -3807,13 +4067,13 @@ public class pharmacy extends javax.swing.JFrame {
 
     }//GEN-LAST:event_dashboardSalesLblMouseExited
 
-    private void dashboardIncomeLblMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardIncomeLblMouseEntered
+    private void dashboardSaleLblMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardSaleLblMouseEntered
 
-    }//GEN-LAST:event_dashboardIncomeLblMouseEntered
+    }//GEN-LAST:event_dashboardSaleLblMouseEntered
 
-    private void dashboardIncomeLblMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardIncomeLblMouseExited
+    private void dashboardSaleLblMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardSaleLblMouseExited
 
-    }//GEN-LAST:event_dashboardIncomeLblMouseExited
+    }//GEN-LAST:event_dashboardSaleLblMouseExited
 
     private void dashboardSalesPanelMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardSalesPanelMouseEntered
         dashboardSalesLbl.setFont(new Font("Segoe UI Black", Font.BOLD, 30));
@@ -3826,13 +4086,13 @@ public class pharmacy extends javax.swing.JFrame {
     }//GEN-LAST:event_dashboardSalesPanelMouseExited
 
     private void dashboardIncomePanelMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardIncomePanelMouseEntered
-        dashboardIncomeLbl.setFont(new Font("Segoe UI Black", Font.BOLD, 30));
-        dashboardIncomeLbl.setForeground(Color.red);
+        dashboardSaleLbl.setFont(new Font("Segoe UI Black", Font.BOLD, 30));
+        dashboardSaleLbl.setForeground(Color.red);
     }//GEN-LAST:event_dashboardIncomePanelMouseEntered
 
     private void dashboardIncomePanelMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dashboardIncomePanelMouseExited
-        dashboardIncomeLbl.setFont(fontDefault);
-        dashboardIncomeLbl.setForeground(Color.black);
+        dashboardSaleLbl.setFont(fontDefault);
+        dashboardSaleLbl.setForeground(Color.black);
     }//GEN-LAST:event_dashboardIncomePanelMouseExited
 
     private void paymentKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_paymentKeyPressed
@@ -4032,31 +4292,35 @@ public class pharmacy extends javax.swing.JFrame {
         dailyWeeklyMonthlyTab.setSelectedIndex(0);
     }//GEN-LAST:event_nextMonthMouseClicked
 
-    private void supplierMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_supplierMouseClicked
+    private void incomeMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_incomeMouseClicked
         home.setOpaque(false);
         pos.setOpaque(false);
         sales.setOpaque(false);
         expenses.setOpaque(false);
         inventory.setOpaque(false);
-        supplier.setOpaque(true);
+        income.setOpaque(true);
 
         home.setBackground(defaultColor);
         pos.setBackground(defaultColor);
         sales.setBackground(defaultColor);
         expenses.setBackground(defaultColor);
         inventory.setBackground(defaultColor);
-        supplier.setBackground(clickedColor);
+        income.setBackground(clickedColor);
 
+        dashboardSalesCount();
+        incomeToDB();
+        incomeTable();
+        showIncome();
         tabOptions.setSelectedIndex(5);
-    }//GEN-LAST:event_supplierMouseClicked
+    }//GEN-LAST:event_incomeMouseClicked
 
-    private void supplierMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_supplierMouseEntered
-        supplierLbl.setForeground(Color.black);
-    }//GEN-LAST:event_supplierMouseEntered
+    private void incomeMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_incomeMouseEntered
+        incomeLabel.setForeground(Color.black);
+    }//GEN-LAST:event_incomeMouseEntered
 
-    private void supplierMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_supplierMouseExited
-        supplierLbl.setForeground(Color.white);
-    }//GEN-LAST:event_supplierMouseExited
+    private void incomeMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_incomeMouseExited
+        incomeLabel.setForeground(Color.white);
+    }//GEN-LAST:event_incomeMouseExited
 
     private void discountItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_discountItemStateChanged
         calculateDiscount();
@@ -4130,21 +4394,50 @@ public class pharmacy extends javax.swing.JFrame {
             if (rs.last()) {
                 payer = rs.getString(1);
             }
-            int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+            //to convert the date of table to month and year only
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            DateTimeFormatter tableDateFormatter = DateTimeFormatter.ofPattern("MMMM yyyy");
 
-            if (response == JOptionPane.YES_OPTION) {
-                pst = con.prepareStatement("INSERT INTO employee_salary_history(employee_name, salary, date, payer_name) VALUES(?,?,?,?)");
-                pst.setString(1, employee);
-                pst.setInt(2, salary);
-                pst.setString(3, date);
-                pst.setString(4, payer);
-                pst.executeUpdate();
-
-                employeeSalaryTxt.setText("");
-                employeeProceed.setEnabled(false);
-                employeeSalaryHistory();
+            //check if the employee is already paid this month
+            boolean isAlreadyPaid = false;
+            DefaultTableModel model = (DefaultTableModel) employeeHistoryTable.getModel();
+            int rowCount = model.getRowCount();
+            for (int i = 0; i < rowCount; i++) {
+                LocalDate convertDate = LocalDate.parse(model.getValueAt(i, 2).toString(), inputFormatter);
+                String formattedDate = tableDateFormatter.format(convertDate);
+                if (model.getValueAt(i, 0).toString().equals(employee) && formattedDate.equals(date)) {
+                    isAlreadyPaid = true;
+                }
             }
+            if (isAlreadyPaid) {
+                int response = JOptionPane.showConfirmDialog(null, "This employee has already been paid this month. Do you want to pay again?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (response == JOptionPane.YES_OPTION) {
+                    pst = con.prepareStatement("INSERT INTO employee_salary_history(employee_name, salary, date, payer_name) VALUES(?,?,?,?)");
+                    pst.setString(1, employee);
+                    pst.setInt(2, salary);
+                    pst.setString(3, date);
+                    pst.setString(4, payer);
+                    pst.executeUpdate();
 
+                    employeeSalaryTxt.setText("");
+                    employeeProceed.setEnabled(false);
+                    employeeSalaryHistory();
+                }
+            } else {
+                int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (response == JOptionPane.YES_OPTION) {
+                    pst = con.prepareStatement("INSERT INTO employee_salary_history(employee_name, salary, date, payer_name) VALUES(?,?,?,?)");
+                    pst.setString(1, employee);
+                    pst.setInt(2, salary);
+                    pst.setString(3, date);
+                    pst.setString(4, payer);
+                    pst.executeUpdate();
+
+                    employeeSalaryTxt.setText("");
+                    employeeProceed.setEnabled(false);
+                    employeeSalaryHistory();
+                }
+            }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
         } catch (NumberFormatException | NullPointerException ex) {
@@ -4227,27 +4520,53 @@ public class pharmacy extends javax.swing.JFrame {
     private void otherExpenses() {
         try {
             LocalDate today = LocalDate.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy");
             String date = today.format(formatter);
 
-            
+            DateTimeFormatter tableDateFormatter = DateTimeFormatter.ofPattern("MMMM yyyy");
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+
             String defaultName = otherExpensesNameTxt.getText();
             String name = Character.toUpperCase(defaultName.charAt(0)) + defaultName.substring(1);
             int amount = Integer.parseInt(otherExpensesAmountTxt.getText());
 
-            int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+            boolean isAlreadyPaid = false;
+            DefaultTableModel model = (DefaultTableModel) otherExpensesTable.getModel();
+            for (int i = 0; i < model.getRowCount(); i++) {
+                LocalDate convertDate = LocalDate.parse(model.getValueAt(i, 2).toString(), inputFormatter);
+                String formattedDate = tableDateFormatter.format(convertDate);
+                if (model.getValueAt(i, 0).toString().equals(name) && formattedDate.equals(date)) {
+                    isAlreadyPaid = true;
+                }
+            }
+            if (isAlreadyPaid) {
+                int response = JOptionPane.showConfirmDialog(null, "This item has already been paid this month. Do you want pay again?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (response == JOptionPane.YES_OPTION) {
+                    pst = con.prepareStatement("INSERT INTO other_expenses_history(name, amount, date) VALUES(?,?,?)");
+                    pst.setString(1, name);
+                    pst.setInt(2, amount);
+                    pst.setString(3, date);
+                    pst.executeUpdate();
 
-            if (response == JOptionPane.YES_OPTION) {
-                pst = con.prepareStatement("INSERT INTO other_expenses_history(name, amount, date) VALUES(?,?,?)");
-                pst.setString(1, name);
-                pst.setInt(2, amount);
-                pst.setString(3, date);
-                pst.executeUpdate();
+                    otherExpensesAmountTxt.setText("");
+                    otherExpensesNameTxt.setText("");
+                    otherExpensesProceedBtn.setEnabled(false);
+                    otherExpensesTable();
+                }
+            } else {
+                int response = JOptionPane.showConfirmDialog(null, "Do you want to proceed?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (response == JOptionPane.YES_OPTION) {
+                    pst = con.prepareStatement("INSERT INTO other_expenses_history(name, amount, date) VALUES(?,?,?)");
+                    pst.setString(1, name);
+                    pst.setInt(2, amount);
+                    pst.setString(3, date);
+                    pst.executeUpdate();
 
-                otherExpensesAmountTxt.setText("");
-                otherExpensesNameTxt.setText("");
-                otherExpensesProceedBtn.setEnabled(false);
-                otherExpensesTable();
+                    otherExpensesAmountTxt.setText("");
+                    otherExpensesNameTxt.setText("");
+                    otherExpensesProceedBtn.setEnabled(false);
+                    otherExpensesTable();
+                }
             }
         } catch (SQLException ex) {
             Logger.getLogger(pharmacy.class.getName()).log(Level.SEVERE, null, ex);
@@ -4365,25 +4684,39 @@ public class pharmacy extends javax.swing.JFrame {
     }
 
     private void restockExpensesTblMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_restockExpensesTblMouseClicked
-        try{
-        int selectedRow = restockExpensesTbl.getSelectedRow();
-        String status = restockExpensesTbl.getValueAt(selectedRow, 4).toString();
+        try {
+            int selectedRow = restockExpensesTbl.getSelectedRow();
+            String status = restockExpensesTbl.getValueAt(selectedRow, 4).toString();
 
-        if (status.equals("Paid")) {
-            JOptionPane.showMessageDialog(this, "This item has already been paid!");
-        } else {
-            String name = restockExpensesTbl.getValueAt(selectedRow, 0).toString();
-            String quan = restockExpensesTbl.getValueAt(selectedRow, 1).toString();
+            if (status.equals("Paid")) {
+                JOptionPane.showMessageDialog(this, "This item has already been paid!");
+            } else {
+                String name = restockExpensesTbl.getValueAt(selectedRow, 0).toString();
+                String quan = restockExpensesTbl.getValueAt(selectedRow, 1).toString();
 
-            restockMedsNameTxt.setText(name);
-            restockMedsQuanTxt.setText(quan);
-            restockMedsAmountTxt.setEditable(true);
-            restockMedsAmountTxt.requestFocus();
-        }
-        }catch(ArrayIndexOutOfBoundsException ex){
+                restockMedsNameTxt.setText(name);
+                restockMedsQuanTxt.setText(quan);
+                restockMedsAmountTxt.setEditable(true);
+                restockMedsAmountTxt.requestFocus();
+            }
+        } catch (ArrayIndexOutOfBoundsException ex) {
             JOptionPane.showMessageDialog(this, "You need to be the owner to access this!");
         }
     }//GEN-LAST:event_restockExpensesTblMouseClicked
+
+    private void setIncomeLblMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_setIncomeLblMouseEntered
+        setIncomeLbl.setFont(new Font("Segoe UI", Font.CENTER_BASELINE, 55));
+    }//GEN-LAST:event_setIncomeLblMouseEntered
+
+    private void setIncomeLblMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_setIncomeLblMouseExited
+        setIncomeLbl.setFont(new Font("Segoe UI", Font.ITALIC, 48));
+    }//GEN-LAST:event_setIncomeLblMouseExited
+
+    private void pinCodeMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_pinCodeMouseClicked
+        if (pinCode.isEnabled()) {
+            JOptionPane.showMessageDialog(null, "Pin Code: 12345 \nYou can use this PIN code when creating an account.");
+        }
+    }//GEN-LAST:event_pinCodeMouseClicked
 
     /**
      * @param args the command line arguments
@@ -4434,10 +4767,10 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel dailyChart;
     private javax.swing.JTable dailySalesTable;
     private javax.swing.JTabbedPane dailyWeeklyMonthlyTab;
-    private javax.swing.JLabel dashboardIncomeLbl;
     private com.k33ptoo.components.KGradientPanel dashboardIncomePanel;
     private javax.swing.JLabel dashboardOrderLbl;
     private com.k33ptoo.components.KGradientPanel dashboardOrderPanel;
+    private javax.swing.JLabel dashboardSaleLbl;
     private javax.swing.JLabel dashboardSalesLbl;
     private com.k33ptoo.components.KGradientPanel dashboardSalesPanel;
     private javax.swing.JCheckBox discount;
@@ -4452,6 +4785,11 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel home;
     private javax.swing.JLabel homeLbl;
     private javax.swing.JPanel homeTab;
+    private javax.swing.JPanel income;
+    private javax.swing.JLabel incomeLabel;
+    private javax.swing.JLabel incomeLbl;
+    private javax.swing.JPanel incomeTab;
+    private javax.swing.JTable incomeTable;
     private javax.swing.JLabel invLbl;
     private javax.swing.JPanel inventory;
     private javax.swing.JPanel inventoryTab;
@@ -4499,13 +4837,13 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane10;
+    private javax.swing.JScrollPane jScrollPane11;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
@@ -4520,6 +4858,7 @@ public class pharmacy extends javax.swing.JFrame {
     private com.k33ptoo.components.KGradientPanel kGradientPanel3;
     private com.k33ptoo.components.KGradientPanel kGradientPanel4;
     private com.k33ptoo.components.KGradientPanel kGradientPanel5;
+    private com.k33ptoo.components.KGradientPanel kGradientPanel6;
     private javax.swing.JPanel lineChartPanelDaily;
     private javax.swing.JLabel logout;
     private javax.swing.JTable medsTable;
@@ -4542,6 +4881,7 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JTable outOfStockTable;
     private javax.swing.JTextField payment;
     private javax.swing.JPanel pieChartPanelWeekly;
+    private javax.swing.JLabel pinCode;
     private javax.swing.JPanel pos;
     private javax.swing.JLabel posLbl;
     private javax.swing.JPanel posTab;
@@ -4559,9 +4899,7 @@ public class pharmacy extends javax.swing.JFrame {
     private javax.swing.JPanel salesTab;
     private javax.swing.JTextField search;
     private javax.swing.JTextField searchInventory;
-    private javax.swing.JPanel supplier;
-    private javax.swing.JLabel supplierLbl;
-    private javax.swing.JPanel supplierTab;
+    private javax.swing.JLabel setIncomeLbl;
     private javax.swing.JTabbedPane tabOptions;
     private javax.swing.JTextField totalTxt;
     private javax.swing.JButton updateBtn;

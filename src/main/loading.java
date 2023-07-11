@@ -1,22 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package main;
 
 import java.awt.Color;
 import java.util.concurrent.TimeUnit;
 
-/**
- *
- * @author asus
- */
 public class loading extends javax.swing.JFrame {
-
-    /**
-     * Creates new form loading
-     */
+   
     public loading() {
         initComponents();
         removeCorner();
@@ -27,7 +16,7 @@ public class loading extends javax.swing.JFrame {
         this.setBackground(new Color(0, 0, 0, 0));
     }
     
-    public static void startLoadingProcess() {
+    protected static void startLoadingProcess() {
         loading l = new loading();
         l.setVisible(true);
 

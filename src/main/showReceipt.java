@@ -1,4 +1,3 @@
-
 package main;
 
 import java.awt.Color;
@@ -8,7 +7,6 @@ import java.util.Date;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
-
 public class showReceipt extends javax.swing.JFrame {
 
     public showReceipt() {
@@ -16,8 +14,10 @@ public class showReceipt extends javax.swing.JFrame {
         receiptDesign();
         removeCorner();
         kButton1.requestFocus();
+        receipt.setLineWrap(true); // disable line wrapping
     }
-    private void receiptDesign(){
+
+    private void receiptDesign() {
         receipt.setText("\t           JLMV Pharmacy\n");
         receipt.setText(receipt.getText() + "\t         Palapat, Hagonoy\n");
         receipt.setText(receipt.getText() + "\t       Bulacan, Philippines\n");
@@ -25,56 +25,59 @@ public class showReceipt extends javax.swing.JFrame {
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
         receipt.setText(receipt.getText() + "            Item                            Qty.                               Price\n");
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
-        
+
     }
-   
+
     //protected kasi papasahan sya ng data sa pharmacy frame
-     protected void showToReceipt(TableModel model, float payment, float change, double discountAmount){
-         DefaultTableModel order = (DefaultTableModel) model;
-         float total = 0;
-         int discount = (int) Math.round(discountAmount);
-         float cash = payment;
-         float balance = change;
-         
-        
-         for(int i = 0; i < order.getRowCount(); i++){
-             
+    protected void showToReceipt(TableModel model, float payment, float change, double discountAmount) {
+        DefaultTableModel order = (DefaultTableModel) model;
+        float total = 0;
+        int discount = (int) Math.round(discountAmount);
+        float cash = payment;
+        float balance = change;
+
+        for (int i = 0; i < order.getRowCount(); i++) {
+
             String itemName = order.getValueAt(i, 0).toString();
             String quantity = order.getValueAt(i, 1).toString();
             String price = order.getValueAt(i, 2).toString();
-            total +=Float.parseFloat(price);
-                        
-            receipt.setText(receipt.getText() + "        " + itemName + "	                  " + quantity + "	                           " + price + "\n");
-         }
+            total += Float.parseFloat(price);
+
+            if (itemName.length() > 10) {
+                receipt.setText(receipt.getText() + "        " + itemName + "                  " + quantity + "	                           " + price + "\n");
+            } else {
+                receipt.setText(receipt.getText() + "        " + itemName + "	                    " + quantity + "	                           " + price + "\n");
+            }
+        }
         double grandTotal = total - discount;
-        
+
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
-        receipt.setText(receipt.getText() + "       Subtotal :                                                             "+ total +"\n");
+        receipt.setText(receipt.getText() + "       Subtotal :                                                             " + total + "\n");
         receipt.setText(receipt.getText() + "       Discount :                                                             " + discount + "\n");
         receipt.setText(receipt.getText() + "    ---------------------------------------------------------------------------\n");
-        receipt.setText(receipt.getText() + "      Grand Total :                                                       "+ grandTotal +"\n");
-        receipt.setText(receipt.getText() + "      Cash :                                                                  "+ cash +"\n");
-        receipt.setText(receipt.getText() + "      Balance :                                                              "+ balance +"\n");
+        receipt.setText(receipt.getText() + "      Grand Total :                                                       " + grandTotal + "\n");
+        receipt.setText(receipt.getText() + "      Cash :                                                                  " + cash + "\n");
+        receipt.setText(receipt.getText() + "      Balance :                                                              " + balance + "\n");
         receipt.setText(receipt.getText() + "    ===========================================\n");
 
         Date dd = new Date();
         SimpleDateFormat datef = new SimpleDateFormat("dd MMM yyyy");
         SimpleDateFormat timef = new SimpleDateFormat("hh:mm a");
-        
+
         String date = datef.format(dd);
         String time = timef.format(dd);
-        
+
         receipt.setText(receipt.getText() + "     Date : " + date + "                               Time : " + time + "\n");
         receipt.setText(receipt.getText() + "   ************************************************************\n");
         receipt.setText(receipt.getText() + "                                Thank you! Come again       \n");
         receipt.setText(receipt.getText() + "   ************************************************************\n");
-     }
-    
-     private void removeCorner(){
-        this.setContentPane(jPanel1);
-        this.setBackground(new Color(0,0,0,0));
     }
-     
+
+    private void removeCorner() {
+        this.setContentPane(jPanel1);
+        this.setBackground(new Color(0, 0, 0, 0));
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -89,16 +92,22 @@ public class showReceipt extends javax.swing.JFrame {
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
-        receipt.setEditable(false);
         receipt.setColumns(20);
         receipt.setRows(5);
+        receipt.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                receiptKeyPressed(evt);
+            }
+        });
         jScrollPane3.setViewportView(receipt);
 
         kButton1.setForeground(new java.awt.Color(51, 51, 51));
         kButton1.setText("Press Enter to Exit");
         kButton1.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
         kButton1.setkEndColor(new java.awt.Color(0, 0, 255));
+        kButton1.setkHoverEndColor(new java.awt.Color(255, 0, 255));
         kButton1.setkHoverForeGround(new java.awt.Color(0, 0, 0));
+        kButton1.setkHoverStartColor(new java.awt.Color(0, 0, 255));
         kButton1.setkStartColor(new java.awt.Color(255, 0, 255));
         kButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -148,16 +157,21 @@ public class showReceipt extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void kButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_kButton1ActionPerformed
-       this.dispose();
+        this.dispose();
     }//GEN-LAST:event_kButton1ActionPerformed
 
     private void kButton1KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_kButton1KeyPressed
-       if(evt.getKeyCode() == KeyEvent.VK_ENTER){
-           this.dispose();
-       }
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            this.dispose();
+        }
     }//GEN-LAST:event_kButton1KeyPressed
 
-   
+    private void receiptKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_receiptKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            this.dispose();
+        }
+    }//GEN-LAST:event_receiptKeyPressed
+
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
