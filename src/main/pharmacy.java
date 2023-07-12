@@ -349,14 +349,28 @@ public class pharmacy extends javax.swing.JFrame {
         //display first 6 rows of table in the chart, in descending
         //6 days only because 1 day is rest day
         int rowCount = Math.min(model.getRowCount(), 6);
-        dataset.clear();
         for (int row = rowCount - 1; row >= 0; row--) {
             String day = model.getValueAt(row, 1).toString();
-            double income = Double.parseDouble(model.getValueAt(row, 2).toString());
+            boolean isRepeated = false;
 
-            dataset.addValue(income, "Income", day);
+            // Check if the value is repeating
+            for (int i = row + 1; i < rowCount; i++) {
+                String nextDay = model.getValueAt(i, 1).toString();
+                if (day.equals(nextDay)) {
+                    isRepeated = true;
+                    break;
+                }
+            }
+
+            if (isRepeated) {
+                day += " "; // Add a space character to the string
+            }
+
+            double dailySales = Double.parseDouble(model.getValueAt(row, 2).toString());
+            dataset.addValue(dailySales, "Sales", day);
         }
-        JFreeChart chart = ChartFactory.createLineChart("", "Last 6 Days", "Income", dataset, PlotOrientation.VERTICAL, false, true, false);
+
+        JFreeChart chart = ChartFactory.createLineChart("", "Last 6 Days", "Sales", dataset, PlotOrientation.VERTICAL, false, true, false);
         chart.setBackgroundPaint(new Color(240, 240, 240));
 
         CategoryPlot plot = chart.getCategoryPlot();
@@ -1961,9 +1975,9 @@ public class pharmacy extends javax.swing.JFrame {
         jLabel7.setText("Out of Stock");
         jLabel7.setFont(new java.awt.Font("Tahoma", 2, 18)); // NOI18N
 
-        pinCode.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         pinCode.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         pinCode.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/pin_code.png"))); // NOI18N
+        pinCode.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         pinCode.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 pinCodeMouseClicked(evt);
@@ -1978,12 +1992,13 @@ public class pharmacy extends javax.swing.JFrame {
                 .addGap(60, 60, 60)
                 .addGroup(homeTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(homeTabLayout.createSequentialGroup()
+                        .addGap(28, 28, 28)
                         .addComponent(dashboardOrderPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(20, 20, 20)
                         .addComponent(dashboardSalesPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(20, 20, 20)
                         .addComponent(dashboardIncomePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(69, 69, 69)
+                        .addGap(41, 41, 41)
                         .addComponent(pinCode, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(homeTabLayout.createSequentialGroup()
@@ -3388,6 +3403,7 @@ public class pharmacy extends javax.swing.JFrame {
                 return canEdit [columnIndex];
             }
         });
+        medsTable1.getTableHeader().setReorderingAllowed(false);
         medsTable1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 medsTable1MouseClicked(evt);
